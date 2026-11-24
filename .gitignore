@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dev-dist/
+.firebase/
+*.log
+.DS_Store
+.env
+.env.local
+# Kredensial: satu per klien, tidak pernah di-commit.
+service-account*.json
+clients/*/service-account*.json
+backups/

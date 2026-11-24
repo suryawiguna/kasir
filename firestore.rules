@@ -1,0 +1,382 @@
+// ===============================================================
+// kasir-base: Firestore rules
+// ===============================================================
+//
+// Prinsip (PLAN §5, gaya Haoshii):
+// - Deny-by-default. Setiap koleksi didaftar eksplisit.
+// - Allowlist field (hasOnly) di setiap write.
+// - Field audit (createdBy, updatedBy, cancelledBy, changedBy) dipatok ke
+//   email di token.
+// - Staf terikat cabang: pesanan, stok, dan hitung stok hanya untuk
+//   request.auth.token.branchId.
+// - Jaga file ini membosankan: tanpa iterasi list (rules tidak bisa), get()
+//   dengan default supaya tidak ada ekspresi yang error. Ekspresi yang error
+//   = DENY, dan Haoshii dua kali kehilangan semua write pesanan karena itu.
+//
+// Semua koleksi ada di top-level sekarang. Kalau nanti multi-tenant, path
+// menjadi tenants/{tenantId}/... di sini dan di src/data/paths.ts saja.
+//
+// Setiap aturan baru wajib punya kasus di tests/rules/.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------
+    // Peran
+    // ---------------------------------------------------------------
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    function isOwner() {
+      return isAdmin() && request.auth.token.get('role', '') == 'owner';
+    }
+
+    function isStaff() {
+      return isAdmin() && request.auth.token.get('role', '') == 'staff' &&
+        request.auth.token.get('branchId', '') != '';
+    }
+
+    function isUser() {
+      return isOwner() || isStaff();
+    }
+
+    // Pemilik: semua cabang. Staf: hanya cabang di claim-nya.
+    function canActOnBranch(branchId) {
+      return isOwner() || (isStaff() && request.auth.token.branchId == branchId);
+    }
+
+    function myEmail() {
+      return request.auth.token.get('email', '');
+    }
+
+    // ---------------------------------------------------------------
+    // Bantuan validasi
+    // ---------------------------------------------------------------
+
+    function hasOnly(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    function hasAll(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    function isIso(value) {
+      return value is string && value.matches('^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z$');
+    }
+
+    function shortString(value, max) {
+      return value is string && value.size() > 0 && value.size() <= max;
+    }
+
+    function optString(data, field, max) {
+      return !(field in data) || (data[field] is string && data[field].size() <= max);
+    }
+
+    function optList(data, field, max) {
+      return !(field in data) || (data[field] is list && data[field].size() <= max);
+    }
+
+    function optMap(data, field) {
+      return !(field in data) || data[field] is map;
+    }
+
+    function optNumberMin(data, field, min) {
+      return !(field in data) || (data[field] is number && data[field] >= min);
+    }
+
+    function stampedByMe(data) {
+      return data.get('updatedBy', myEmail()) == myEmail() &&
+        (!('updatedAt' in data) || isIso(data.updatedAt));
+    }
+
+    // ---------------------------------------------------------------
+    // config/shop dan settings/*: hanya pemilik yang menulis
+    // ---------------------------------------------------------------
+
+    function isValidShopConfig(data) {
+      return hasOnly(data, ['name', 'logoUrl', 'brandColor', 'units', 'receipt', 'currency', 'timezone',
+          'stockPolicy', 'instantStatus', 'updatedBy', 'updatedAt']) &&
+        hasAll(data, ['name', 'brandColor', 'units', 'currency', 'timezone']) &&
+        shortString(data.name, 80) &&
+        data.brandColor is string && data.brandColor.matches('^#[0-9a-fA-F]{6}$') &&
+        data.units is list && data.units.size() <= 50 &&
+        optMap(data, 'receipt') &&
+        optString(data, 'logoUrl', 500) &&
+        data.currency == 'IDR' &&
+        data.timezone in ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura'] &&
+        (!('stockPolicy' in data) || data.stockPolicy in ['block', 'warn']) &&
+        (!('instantStatus' in data) || data.instantStatus in ['pending', 'completed']) &&
+        stampedByMe(data);
+    }
+
+    match /config/shop {
+      allow read: if isUser();
+      allow create, update: if isOwner() && isValidShopConfig(request.resource.data);
+      allow delete: if false;
+    }
+
+    function isValidFeatures(data) {
+      return hasOnly(data, ['multiBranch', 'weightSales', 'bundles', 'preorder', 'customers', 'transfer', 'qris',
+          'kitchenTicket', 'events', 'cashCount', 'proofPhotos', 'updatedBy', 'updatedAt']) &&
+        (!('multiBranch' in data) || data.multiBranch is bool) &&
+        (!('weightSales' in data) || data.weightSales is bool) &&
+        (!('bundles' in data) || data.bundles is bool) &&
+        (!('preorder' in data) || data.preorder is bool) &&
+        (!('customers' in data) || data.customers is bool) &&
+        (!('transfer' in data) || data.transfer is bool) &&
+        (!('qris' in data) || data.qris is bool) &&
+        (!('kitchenTicket' in data) || data.kitchenTicket is bool) &&
+        (!('events' in data) || data.events is bool) &&
+        (!('cashCount' in data) || data.cashCount is bool) &&
+        (!('proofPhotos' in data) || data.proofPhotos is bool) &&
+        stampedByMe(data);
+    }
+
+    match /settings/features {
+      allow read: if isUser();
+      allow create, update: if isOwner() && isValidFeatures(request.resource.data);
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // Katalog: branches, categories, stockItems, products (pemilik)
+    // ---------------------------------------------------------------
+
+    function isValidBranch(data, id) {
+      return hasOnly(data, ['id', 'name', 'code', 'receiptHeader', 'active', 'order']) &&
+        hasAll(data, ['id', 'name', 'code', 'active', 'order']) &&
+        data.id == id &&
+        shortString(data.name, 80) &&
+        data.code is string && data.code.matches('^[A-Z0-9]{2,6}$') &&
+        optList(data, 'receiptHeader', 10) &&
+        data.active is bool &&
+        data.order is number;
+    }
+
+    match /branches/{branchId} {
+      allow read: if isUser();
+      // Kode cabang ada di setiap nomor pesanan: tidak bisa diganti setelah dibuat.
+      allow create: if isOwner() && isValidBranch(request.resource.data, branchId);
+      allow update: if isOwner() && isValidBranch(request.resource.data, branchId) &&
+        request.resource.data.code == resource.data.code;
+      allow delete: if false;
+    }
+
+    function isValidCategory(data, id) {
+      return hasOnly(data, ['id', 'name', 'order', 'active']) &&
+        hasAll(data, ['id', 'name', 'order', 'active']) &&
+        data.id == id &&
+        shortString(data.name, 80) &&
+        data.order is number &&
+        data.active is bool;
+    }
+
+    match /categories/{categoryId} {
+      allow read: if isUser();
+      allow create, update: if isOwner() && isValidCategory(request.resource.data, categoryId);
+      allow delete: if isOwner();
+    }
+
+    function isValidStockItem(data, id) {
+      return hasOnly(data, ['id', 'name', 'unit', 'lowAt', 'active', 'order', 'ownerProductId']) &&
+        hasAll(data, ['id', 'name', 'unit', 'active', 'order']) &&
+        data.id == id &&
+        shortString(data.name, 120) &&
+        shortString(data.unit, 30) &&
+        optNumberMin(data, 'lowAt', 0) &&
+        data.active is bool &&
+        data.order is number &&
+        optString(data, 'ownerProductId', 100);
+    }
+
+    match /stockItems/{stockItemId} {
+      allow read: if isUser();
+      allow create, update: if isOwner() && isValidStockItem(request.resource.data, stockItemId);
+      // Tidak dihapus: pesanan lama menyimpan id-nya di snapshot `consumed`.
+      allow delete: if false;
+    }
+
+    function isValidProduct(data, id) {
+      return hasOnly(data, ['id', 'sku', 'name', 'categoryId', 'price', 'unit', 'soldBy', 'stockMode', 'consumes',
+          'choiceGroups', 'freeItems', 'branchIds', 'priceByBranch', 'image', 'active', 'order']) &&
+        hasAll(data, ['id', 'name', 'price', 'unit', 'soldBy', 'stockMode', 'active', 'order']) &&
+        data.id == id &&
+        shortString(data.name, 120) &&
+        optString(data, 'sku', 40) &&
+        optString(data, 'categoryId', 100) &&
+        data.price is number && data.price >= 0 &&
+        shortString(data.unit, 30) &&
+        data.soldBy in ['count', 'weight'] &&
+        data.stockMode in ['own', 'shared', 'none'] &&
+        optList(data, 'consumes', 20) &&
+        optList(data, 'choiceGroups', 10) &&
+        optList(data, 'freeItems', 10) &&
+        optList(data, 'branchIds', 50) &&
+        optMap(data, 'priceByBranch') &&
+        optString(data, 'image', 300) &&
+        data.active is bool &&
+        data.order is number;
+    }
+
+    match /products/{productId} {
+      allow read: if isUser();
+      allow create, update: if isOwner() && isValidProduct(request.resource.data, productId);
+      allow delete: if isOwner();
+    }
+
+    // ---------------------------------------------------------------
+    // inventory/{branchId}: satu dokumen per cabang, map levels
+    // ---------------------------------------------------------------
+    //
+    // Tanpa batas bawah, disengaja (pelajaran Haoshii 2026-09-24): dua kasir
+    // offline yang menjual stok terakhir sama-sama lolos cek lokal, dan
+    // penolakan saat sync menghilangkan pesanan yang sudah dibayar. Stok
+    // negatif adalah tanda untuk menghitung ulang.
+    //
+    // Rules tidak bisa memeriksa setiap nilai map; pemeriksaan stok tetap di
+    // klien (consumption.ts).
+
+    function isValidInventory(data) {
+      return hasOnly(data, ['levels', 'updatedBy', 'updatedAt']) &&
+        data.levels is map &&
+        stampedByMe(data);
+    }
+
+    match /inventory/{branchId} {
+      allow read: if isOwner() || (isStaff() && request.auth.token.branchId == branchId);
+      allow create: if isOwner() && isValidInventory(request.resource.data);
+      allow update: if canActOnBranch(branchId) && isValidInventory(request.resource.data);
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // stockChanges: hitung stok manual, hanya create
+    // ---------------------------------------------------------------
+
+    function isValidStockChange(data) {
+      return hasOnly(data, ['id', 'branchId', 'stockItemId', 'kind', 'before', 'after', 'note', 'changedBy', 'changedAt']) &&
+        hasAll(data, ['id', 'branchId', 'stockItemId', 'kind', 'before', 'after', 'changedBy', 'changedAt']) &&
+        shortString(data.stockItemId, 100) &&
+        // 'set' = hitung ulang (hasil hitung tidak mungkin negatif),
+        // 'add' = stok masuk (after boleh negatif bila stok sebelumnya negatif).
+        data.kind in ['add', 'set'] &&
+        data.before is number &&
+        data.after is number &&
+        (data.kind == 'add' ? data.after > data.before : data.after >= 0) &&
+        optString(data, 'note', 200) &&
+        data.changedBy == myEmail() &&
+        isIso(data.changedAt);
+    }
+
+    match /stockChanges/{changeId} {
+      allow read: if isOwner() || (isStaff() && resource.data.branchId == request.auth.token.branchId);
+      allow create: if isUser() &&
+        request.resource.data.get('id', '') == changeId &&
+        canActOnBranch(request.resource.data.get('branchId', '')) &&
+        isValidStockChange(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // orders
+    // ---------------------------------------------------------------
+    //
+    // Baris pesanan (items) tidak divalidasi per item: rules tidak bisa
+    // iterasi list. Bentuk item dijaga TypeScript dan cart.ts.
+
+    function isValidOrder(data) {
+      return hasAll(data, ['id', 'orderNumber', 'branchId', 'deviceLetter', 'items', 'totalAmount', 'orderType',
+          'orderStatus', 'paymentStatus', 'createdAt', 'createdBy']) &&
+        hasOnly(data, ['id', 'orderNumber', 'branchId', 'deviceLetter', 'items', 'totalAmount', 'orderType',
+          'orderStatus', 'paymentStatus', 'paymentMethod', 'cashReceived', 'paidAt', 'customerId', 'customerName',
+          'customerContact', 'pickupTime', 'eventId', 'eventName', 'paymentProof', 'createdAt', 'createdBy',
+          'updatedAt', 'updatedBy', 'cancelledAt', 'cancelledBy']) &&
+        shortString(data.id, 100) &&
+        data.orderNumber is string && data.orderNumber.matches('^\\d{8}-[A-Z0-9]{2,6}[A-Z]\\d{4,}$') &&
+        shortString(data.branchId, 100) &&
+        data.deviceLetter is string && data.deviceLetter.matches('^[A-Z]$') &&
+        data.items is list && data.items.size() > 0 && data.items.size() <= 100 &&
+        data.totalAmount is number && data.totalAmount >= 0 &&
+        data.orderType in ['instant', 'preorder'] &&
+        data.orderStatus in ['pending', 'ready', 'completed', 'cancelled'] &&
+        data.paymentStatus in ['paid', 'unpaid'] &&
+        // Kosong sampai uang diterima.
+        (!('paymentMethod' in data) || data.paymentMethod in ['cash', 'transfer', 'qris']) &&
+        // Lunas harus punya metode; belum lunas tidak boleh punya.
+        ((data.paymentStatus == 'paid') == ('paymentMethod' in data)) &&
+        // Kembalian negatif tidak bisa disimpan.
+        (!('cashReceived' in data) || (data.cashReceived is number && data.cashReceived >= data.totalAmount)) &&
+        (!('paidAt' in data) || isIso(data.paidAt)) &&
+        optString(data, 'customerId', 100) &&
+        optString(data, 'customerName', 100) &&
+        optString(data, 'customerContact', 50) &&
+        optString(data, 'pickupTime', 50) &&
+        optString(data, 'eventId', 100) &&
+        optString(data, 'eventName', 100) &&
+        optString(data, 'paymentProof', 300) &&
+        isIso(data.createdAt) &&
+        data.createdBy is string && data.createdBy.size() <= 200 &&
+        (!('updatedAt' in data) || isIso(data.updatedAt)) &&
+        optString(data, 'updatedBy', 200) &&
+        (!('cancelledAt' in data) || isIso(data.cancelledAt)) &&
+        optString(data, 'cancelledBy', 200);
+    }
+
+    // Field yang tidak pernah berubah setelah pesanan dibuat, oleh siapa pun.
+    function keepsIdentity(before, after) {
+      return !after.diff(before).affectedKeys().hasAny(['id', 'orderNumber', 'branchId', 'deviceLetter',
+        'createdAt', 'createdBy']);
+    }
+
+    // Port isStaffOrderUpdate dari Haoshii: staf memindahkan status, menerima
+    // pembayaran pesanan yang belum lunas, dan mengubah waktu ambil. Batal,
+    // ubah isi, membuka lagi pesanan selesai, dan mengubah pembayaran yang
+    // sudah lunas adalah urusan pemilik.
+    function isStaffOrderUpdate(before, after) {
+      return after.diff(before).affectedKeys().hasOnly([
+          'orderStatus', 'paymentStatus', 'paymentMethod', 'cashReceived',
+          'paidAt', 'paymentProof', 'pickupTime', 'updatedBy', 'updatedAt'
+        ]) &&
+        before.get('orderStatus', '') != 'cancelled' &&
+        after.orderStatus != 'cancelled' &&
+        (before.get('orderStatus', '') != 'completed' || after.orderStatus == 'completed') &&
+        (before.get('paymentStatus', '') != 'paid' ||
+          !after.diff(before).affectedKeys().hasAny(['paymentStatus', 'paymentMethod', 'cashReceived', 'paidAt', 'paymentProof']));
+    }
+
+    match /orders/{orderId} {
+      allow read: if isOwner() || (isStaff() && resource.data.branchId == request.auth.token.branchId);
+
+      allow create: if isUser() &&
+        isValidOrder(request.resource.data) &&
+        request.resource.data.id == orderId &&
+        request.resource.data.createdBy == myEmail() &&
+        canActOnBranch(request.resource.data.branchId) &&
+        !('cancelledAt' in request.resource.data) &&
+        !('cancelledBy' in request.resource.data) &&
+        request.resource.data.orderStatus != 'cancelled';
+
+      allow update: if isUser() &&
+        isValidOrder(request.resource.data) &&
+        keepsIdentity(resource.data, request.resource.data) &&
+        canActOnBranch(resource.data.branchId) &&
+        request.resource.data.get('updatedBy', '') == myEmail() &&
+        // Cap baru di setiap update: tanpa ini, update kedua oleh orang yang
+        // sama lolos dengan cap lama (ditemukan oleh tes rules).
+        request.resource.data.get('updatedAt', '') != resource.data.get('updatedAt', '') &&
+        (isOwner() || isStaffOrderUpdate(resource.data, request.resource.data)) &&
+        // Membatalkan wajib dicap oleh pembatalnya.
+        (request.resource.data.orderStatus != 'cancelled' ||
+          resource.data.orderStatus == 'cancelled' ||
+          (request.resource.data.get('cancelledBy', '') == myEmail() && 'cancelledAt' in request.resource.data));
+
+      // Tidak ada hapus pesanan dari aplikasi.
+      allow delete: if false;
+    }
+  }
+}

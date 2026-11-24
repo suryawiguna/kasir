@@ -1,0 +1,387 @@
+{
+  "_comment": "Setup A (PLAN §10): stok total ekor, paket isi tetap. Contoh data, bukan aturan di kode. Pemilik bisa pindah ke Setup B dari editor Produk.",
+  "config": {
+    "name": "Aneka Ayam Manado",
+    "brandColor": "#b91c1c",
+    "units": [
+      {
+        "code": "pcs",
+        "label": "pcs",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "ekor",
+        "label": "ekor",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "pasang",
+        "label": "pasang",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "porsi",
+        "label": "porsi",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "paket",
+        "label": "paket",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "botol",
+        "label": "botol",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "bungkus",
+        "label": "bungkus",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "kg",
+        "label": "kg",
+        "baseLabel": "gram",
+        "factor": 1000,
+        "decimals": 2,
+        "step": 0.1
+      },
+      {
+        "code": "gram",
+        "label": "gram",
+        "factor": 1,
+        "decimals": 0,
+        "step": 50
+      },
+      {
+        "code": "liter",
+        "label": "liter",
+        "baseLabel": "ml",
+        "factor": 1000,
+        "decimals": 2,
+        "step": 0.1
+      },
+      {
+        "code": "ml",
+        "label": "ml",
+        "factor": 1,
+        "decimals": 0,
+        "step": 50
+      }
+    ],
+    "receipt": {
+      "header": [
+        "Aneka Ayam Manado"
+      ],
+      "footer": [
+        "Terima kasih"
+      ],
+      "showCustomerName": true
+    },
+    "currency": "IDR",
+    "timezone": "Asia/Makassar",
+    "stockPolicy": "block",
+    "instantStatus": "completed"
+  },
+  "features": {
+    "multiBranch": true,
+    "weightSales": true,
+    "bundles": true,
+    "preorder": true,
+    "customers": true,
+    "transfer": true,
+    "qris": false
+  },
+  "branches": [
+    {
+      "id": "tkl",
+      "name": "Lapak Tikala",
+      "code": "TKL",
+      "active": true,
+      "order": 0
+    },
+    {
+      "id": "pkm",
+      "name": "Lapak Perkamil",
+      "code": "PKM",
+      "active": true,
+      "order": 1
+    }
+  ],
+  "categories": [
+    {
+      "id": "ayam-segar",
+      "name": "Ayam Segar Satuan",
+      "order": 0,
+      "active": true
+    },
+    {
+      "id": "paket-hemat",
+      "name": "Paket Ayam Hemat",
+      "order": 1,
+      "active": true
+    },
+    {
+      "id": "tambahan",
+      "name": "Produk Tambahan",
+      "order": 2,
+      "active": true
+    }
+  ],
+  "stockItems": [
+    {
+      "id": "ayam",
+      "name": "Ayam utuh",
+      "unit": "ekor",
+      "lowAt": 10,
+      "active": true,
+      "order": 0
+    },
+    {
+      "id": "hati",
+      "name": "Hati ayam",
+      "unit": "pasang",
+      "lowAt": 5,
+      "active": true,
+      "order": 1
+    },
+    {
+      "id": "kaki",
+      "name": "Kaki ayam",
+      "unit": "kg",
+      "lowAt": 2000,
+      "active": true,
+      "order": 2
+    }
+  ],
+  "products": [
+    {
+      "id": "as001",
+      "sku": "AS001",
+      "name": "Ayam Segar 35K",
+      "categoryId": "ayam-segar",
+      "price": 35000,
+      "unit": "ekor",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "consumes": [
+        {
+          "stockItemId": "ayam",
+          "qty": 1
+        }
+      ],
+      "active": true,
+      "order": 0
+    },
+    {
+      "id": "as002",
+      "sku": "AS002",
+      "name": "Ayam Segar 40K",
+      "categoryId": "ayam-segar",
+      "price": 40000,
+      "unit": "ekor",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "consumes": [
+        {
+          "stockItemId": "ayam",
+          "qty": 1
+        }
+      ],
+      "active": true,
+      "order": 1
+    },
+    {
+      "id": "as003",
+      "sku": "AS003",
+      "name": "Ayam Segar 45K",
+      "categoryId": "ayam-segar",
+      "price": 45000,
+      "unit": "ekor",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "consumes": [
+        {
+          "stockItemId": "ayam",
+          "qty": 1
+        }
+      ],
+      "active": true,
+      "order": 2
+    },
+    {
+      "id": "as004",
+      "sku": "AS004",
+      "name": "Ayam Segar 50K",
+      "categoryId": "ayam-segar",
+      "price": 50000,
+      "unit": "ekor",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "consumes": [
+        {
+          "stockItemId": "ayam",
+          "qty": 1
+        }
+      ],
+      "active": true,
+      "order": 3
+    },
+    {
+      "id": "as005",
+      "sku": "AS005",
+      "name": "Ayam Segar 55K",
+      "categoryId": "ayam-segar",
+      "price": 55000,
+      "unit": "ekor",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "consumes": [
+        {
+          "stockItemId": "ayam",
+          "qty": 1
+        }
+      ],
+      "active": true,
+      "order": 4
+    },
+    {
+      "id": "ph100",
+      "name": "Paket Hemat 100K",
+      "categoryId": "paket-hemat",
+      "price": 100000,
+      "unit": "paket",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "consumes": [
+        {
+          "stockItemId": "ayam",
+          "qty": 3
+        }
+      ],
+      "active": true,
+      "order": 10
+    },
+    {
+      "id": "ph110",
+      "name": "Paket Hemat 110K",
+      "categoryId": "paket-hemat",
+      "price": 110000,
+      "unit": "paket",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "consumes": [
+        {
+          "stockItemId": "ayam",
+          "qty": 3
+        }
+      ],
+      "active": true,
+      "order": 11
+    },
+    {
+      "id": "ph120",
+      "name": "Paket Hemat 120K",
+      "categoryId": "paket-hemat",
+      "price": 120000,
+      "unit": "paket",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "consumes": [
+        {
+          "stockItemId": "ayam",
+          "qty": 3
+        }
+      ],
+      "active": true,
+      "order": 12
+    },
+    {
+      "id": "ph130",
+      "name": "Paket Hemat 130K",
+      "categoryId": "paket-hemat",
+      "price": 130000,
+      "unit": "paket",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "consumes": [
+        {
+          "stockItemId": "ayam",
+          "qty": 3
+        }
+      ],
+      "active": true,
+      "order": 13
+    },
+    {
+      "id": "ph150",
+      "name": "Paket Hemat 150K",
+      "categoryId": "paket-hemat",
+      "price": 150000,
+      "unit": "paket",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "consumes": [
+        {
+          "stockItemId": "ayam",
+          "qty": 3
+        }
+      ],
+      "active": true,
+      "order": 14
+    },
+    {
+      "id": "hati",
+      "name": "Hati Ayam",
+      "categoryId": "tambahan",
+      "price": 2500,
+      "unit": "pasang",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "consumes": [
+        {
+          "stockItemId": "hati",
+          "qty": 1
+        }
+      ],
+      "active": true,
+      "order": 20
+    },
+    {
+      "id": "kaki",
+      "name": "Kaki Ayam",
+      "categoryId": "tambahan",
+      "price": 25000,
+      "unit": "kg",
+      "soldBy": "weight",
+      "stockMode": "shared",
+      "consumes": [
+        {
+          "stockItemId": "kaki",
+          "qty": 1000
+        }
+      ],
+      "active": true,
+      "order": 21
+    }
+  ],
+  "inventory": {
+    "tkl": {},
+    "pkm": {}
+  }
+}

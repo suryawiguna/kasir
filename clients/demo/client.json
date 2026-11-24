@@ -1,0 +1,14 @@
+{
+  "slug": "demo",
+  "name": "Toko Demo",
+  "shortName": "Kasir Demo",
+  "usernameDomain": "demo.local",
+  "hostingUrl": "",
+  "workerUrl": "",
+  "firebase": {
+    "apiKey": "demo-api-key",
+    "authDomain": "demo-kasir.firebaseapp.com",
+    "projectId": "demo-kasir",
+    "appId": "demo-app-id"
+  }
+}

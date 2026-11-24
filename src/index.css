@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/*
+ * Design system basis (lihat docs/DESIGN.md).
+ *
+ * Warna brand adalah TANGGA, bukan satu hex, dan nilainya datang saat runtime
+ * dari config/shop.brandColor (ShopProvider menulis --brand-* ke :root).
+ * `@theme inline` membuat bg-brand-600 dll. merujuk variabel itu, jadi
+ * mengganti warna toko tidak butuh build ulang. Nilai di :root di bawah hanya
+ * dipakai sebelum config terbaca.
+ */
+:root {
+  --brand-50: #e7f2f1;
+  --brand-100: #d0e6e4;
+  --brand-200: #a2cdc9;
+  --brand-300: #87bbb7;
+  --brand-400: #4b9892;
+  --brand-500: #2a8780;
+  --brand-600: #0f766e;
+  --brand-700: #0d645e;
+  --brand-800: #0b534d;
+  --brand-900: #08413c;
+  --brand-fg: #ffffff;
+}
+
+@theme inline {
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-brand-fg: var(--brand-fg);
+}
+
+@layer base {
+  body {
+    @apply bg-zinc-50 text-zinc-900 antialiased;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button,
+  [role="button"],
+  select,
+  label:has(input[type="checkbox"]),
+  input[type="checkbox"] {
+    cursor: pointer;
+  }
+  button:disabled,
+  input:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+  :focus-visible {
+    outline: 2px solid var(--brand-600);
+    outline-offset: 2px;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Satu tinggi kontrol (h-11) dan satu radius (rounded-xl). */
+@layer components {
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-danger {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-brand-600 text-brand-fg hover:bg-brand-700;
+  }
+  .btn-secondary {
+    @apply border border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50;
+  }
+  .btn-ghost {
+    @apply text-zinc-700 hover:bg-zinc-100;
+  }
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+  }
+  .btn-sm {
+    @apply h-9 rounded-lg px-3 text-sm;
+  }
+  .field {
+    @apply h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 placeholder:text-zinc-400 focus:border-brand-600 focus:outline-none disabled:bg-zinc-100;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-zinc-700;
+  }
+  .hint {
+    @apply mt-1 text-xs text-zinc-500;
+  }
+  .card {
+    @apply rounded-2xl border border-zinc-200 bg-white;
+  }
+  .pill {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold;
+  }
+  .section-title {
+    @apply text-base font-semibold text-zinc-900;
+  }
+}

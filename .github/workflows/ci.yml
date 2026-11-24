@@ -1,0 +1,46 @@
+# Lint + test + test:rules + build pada setiap push dan pull request.
+# Deploy TIDAK dari push ke main: banyak toko bergantung pada satu kode, jadi
+# deploy semua klien dilakukan dari tag rilis (v*) — lihat deploy.yml (menyusul,
+# Fase 7) dan docs/RUNBOOK.md.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # tsc --noEmit + scripts/check-paths.mjs (akses koleksi hanya lewat src/data/paths.ts)
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      # Emulator Firestore butuh Java 21.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Test security rules
+        run: npm run test:rules
+
+      - name: Build (klien demo)
+        run: npm run build

@@ -1,0 +1,14 @@
+{
+  "slug": "aneka-ayam-manado",
+  "name": "Aneka Ayam Manado",
+  "shortName": "Aneka Ayam",
+  "usernameDomain": "aneka-ayam-manado.local",
+  "hostingUrl": "",
+  "workerUrl": "",
+  "firebase": {
+    "apiKey": "ISI-DARI-FIREBASE-CONSOLE",
+    "authDomain": "ISI-PROJECT-ID.firebaseapp.com",
+    "projectId": "ISI-PROJECT-ID",
+    "appId": "ISI-DARI-FIREBASE-CONSOLE"
+  }
+}
