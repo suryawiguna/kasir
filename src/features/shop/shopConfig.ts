@@ -1,4 +1,4 @@
-import type { ShopConfig, StockPolicy, Timezone, Unit } from "../../domain/types";
+import type { PaperWidth, ShopConfig, StockPolicy, Timezone, Unit } from "../../domain/types";
 import { PRESET_UNITS } from "../units/units";
 
 /**
@@ -13,7 +13,7 @@ export const defaultShopConfig = (name: string): ShopConfig => ({
   name,
   brandColor: DEFAULT_BRAND_COLOR,
   units: [...PRESET_UNITS],
-  receipt: { header: [], footer: ["Terima kasih"], showCustomerName: true },
+  receipt: { header: [], footer: ["Terima kasih"], showCustomerName: true, paperWidth: 32 },
   currency: "IDR",
   timezone: "Asia/Jakarta",
   stockPolicy: "block",
@@ -22,6 +22,7 @@ export const defaultShopConfig = (name: string): ShopConfig => ({
 
 const TIMEZONES: readonly Timezone[] = ["Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura"];
 const STOCK_POLICIES: readonly StockPolicy[] = ["block", "warn"];
+const PAPER_WIDTHS: readonly PaperWidth[] = [32, 48];
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
 const isUnit = (value: unknown): value is Unit => {
@@ -58,6 +59,9 @@ export const parseShopConfig = (data: unknown, fallbackName: string): ShopConfig
       footer: stringList(receipt.footer) ?? base.receipt.footer,
       showCustomerName:
         typeof receipt.showCustomerName === "boolean" ? receipt.showCustomerName : base.receipt.showCustomerName,
+      paperWidth: PAPER_WIDTHS.includes(receipt.paperWidth as PaperWidth)
+        ? (receipt.paperWidth as PaperWidth)
+        : base.receipt.paperWidth,
     },
     currency: "IDR",
     timezone: TIMEZONES.includes(d.timezone as Timezone) ? (d.timezone as Timezone) : base.timezone,

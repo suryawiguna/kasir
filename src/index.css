@@ -321,3 +321,31 @@ html [data-sonner-toaster][data-sonner-theme="light"] {
     --width: 480px !important;
   }
 }
+
+/* Cetak struk lewat browser (ReceiptSheet, browserPrint.ts). Salinan cetak
+   dirender langsung di <body>; saat mencetak hanya salinan itu yang tampil.
+   32 karakter × 0,6em × 2,5mm = 48mm, area cetak kertas 58mm (48 kolom di
+   kertas 80mm = 72mm). */
+.print-only {
+  display: none;
+}
+.receipt-print-copy {
+  font-size: 2.5mm;
+}
+@media screen {
+  .receipt-print-copy {
+    font-size: 14px;
+    padding: 16px;
+  }
+}
+@media print {
+  body > *:not(#receipt-print) {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .receipt-print-copy {
+    padding: 0;
+  }
+}

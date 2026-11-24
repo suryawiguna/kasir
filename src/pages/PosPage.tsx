@@ -1,7 +1,8 @@
-import { ChevronDown, CircleCheck, Plus, Scale, ShoppingCart, SlidersHorizontal, Trash2, User } from "lucide-react";
+import { ChevronDown, CircleCheck, Plus, Printer, Scale, ShoppingCart, SlidersHorizontal, Trash2, User } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CLOSE_ICON_SIZE, Drawer } from "../components/Drawer";
+import { ReceiptSheet } from "../components/ReceiptSheet";
 import { CheckRow, Confirm, SegmentedControl, Stepper } from "../components/ui";
 import type { LineChoice, Order, PaymentMethod, Product, Unit } from "../domain/types";
 import { useBranch } from "../features/orders/BranchContext";
@@ -35,9 +36,10 @@ export default function PosPage() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [done, setDone] = useState<{ order: Order; change: number | null } | null>(null);
+  const [receiptFor, setReceiptFor] = useState<Order | null>(null);
   const branchId = branch?.id ?? "";
 
-  const anyOverlay = Boolean(weightFor || choiceFor || cartOpen || checkoutOpen || done);
+  const anyOverlay = Boolean(weightFor || choiceFor || cartOpen || checkoutOpen || done || receiptFor);
   useEffect(() => {
     setTillBusy(anyOverlay || pos.cart.length > 0);
   }, [anyOverlay, pos.cart.length]);
@@ -189,7 +191,8 @@ export default function PosPage() {
           setDone({ order, change });
         }}
       />
-      <DoneDialog done={done} onClose={() => setDone(null)} />
+      <DoneDialog done={done} onClose={() => setDone(null)} onPrint={() => setReceiptFor(done?.order ?? null)} />
+      <ReceiptSheet order={receiptFor} open={receiptFor !== null} onClose={() => setReceiptFor(null)} />
       <Confirm
         open={confirmClear}
         onClose={() => setConfirmClear(false)}
@@ -743,7 +746,16 @@ function CheckoutSheet({
   );
 }
 
-function DoneDialog({ done, onClose }: { done: { order: Order; change: number | null } | null; onClose: () => void }) {
+function DoneDialog({
+  done,
+  onClose,
+  onPrint,
+}: {
+  done: { order: Order; change: number | null } | null;
+  onClose: () => void;
+  onPrint: () => void;
+}) {
+  const { features } = useShop();
   const shown = useLast(done);
   return (
     <Drawer open={done !== null} onClose={onClose} variant="dialog" size="xs" bodyClassName="p-6">
@@ -764,9 +776,16 @@ function DoneDialog({ done, onClose }: { done: { order: Order; change: number | 
           {shown.order.paymentStatus === "unpaid" && (
             <p className="card card-warn p-3 text-sm text-amber-800">Belum dibayar. Terima pembayaran di tab Pesanan.</p>
           )}
-          <button className="btn-primary w-full" onClick={onClose}>
-            Pesanan baru
-          </button>
+          <div className="space-y-2">
+            {features.receipt && (
+              <button className="btn-neutral w-full" onClick={onPrint}>
+                <Printer size={18} /> Cetak struk
+              </button>
+            )}
+            <button className="btn-primary w-full" onClick={onClose}>
+              Pesanan baru
+            </button>
+          </div>
         </div>
       )}
     </Drawer>

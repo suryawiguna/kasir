@@ -43,13 +43,20 @@ export interface Unit {
 }
 
 export type StockPolicy = "block" | "warn";
+export type PaperWidth = 32 | 48;
 
 export interface ShopConfig {
   name: string;
   logoUrl?: string;
   brandColor: string;
   units: Unit[];
-  receipt: { header: string[]; footer: string[]; showCustomerName: boolean };
+  receipt: {
+    header: string[];
+    footer: string[];
+    showCustomerName: boolean;
+    /** Karakter per baris: 32 untuk kertas 58 mm, 48 untuk 80 mm. */
+    paperWidth: PaperWidth;
+  };
   currency: "IDR";
   timezone: Timezone;
   /** "block": kasir tidak bisa menjual melebihi stok. "warn": hanya diberi tanda. */

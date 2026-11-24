@@ -8,6 +8,7 @@
  * lama yang masih berisi `multiBranch` tetap diterima rules dan diabaikan.
  */
 export type FeatureName =
+  | "receipt"
   | "weightSales"
   | "bundles"
   | "preorder"
@@ -23,6 +24,7 @@ export type FeatureFlags = Record<FeatureName, boolean>;
 
 /** Nilai untuk toko tanpa dokumen `settings/features`. */
 export const DEFAULT_FEATURES: FeatureFlags = {
+  receipt: false,
   weightSales: false,
   bundles: true,
   preorder: true,
@@ -36,6 +38,7 @@ export const DEFAULT_FEATURES: FeatureFlags = {
 };
 
 export const FEATURE_ORDER: readonly FeatureName[] = [
+  "receipt",
   "weightSales",
   "bundles",
   "preorder",
@@ -48,14 +51,20 @@ export const FEATURE_ORDER: readonly FeatureName[] = [
   "proofPhotos",
 ];
 
+/**
+ * `ready: false` = belum dibangun. Fitur itu tidak ditampilkan di Pengaturan
+ * sama sekali (saklar mati tanpa alasan membingungkan pemilik), dan muncul
+ * sendiri begitu `ready` dibalik.
+ */
 export const FEATURE_INFO: Record<FeatureName, { label: string; detail: string; ready: boolean }> = {
+  receipt: { label: "Cetak struk", detail: "Struk pelanggan lewat printer thermal Bluetooth atau browser.", ready: true },
   weightSales: { label: "Jual per berat", detail: "Kasir mengetik berat untuk produk per kg/liter.", ready: true },
   bundles: { label: "Paket dan pilihan", detail: "Produk paket dan grup pilihan saat jual.", ready: true },
   preorder: { label: "Bayar nanti", detail: "Simpan pesanan yang dibayar saat diambil.", ready: true },
   customers: { label: "Nama pelanggan", detail: "Nama dan No. HP pelanggan di pesanan.", ready: true },
   transfer: { label: "Transfer", detail: "Transfer bank sebagai metode bayar.", ready: true },
   qris: { label: "QRIS", detail: "QRIS sebagai metode bayar.", ready: true },
-  kitchenTicket: { label: "Struk dapur", detail: "Cetak tiket dapur tanpa harga.", ready: false },
+  kitchenTicket: { label: "Struk dapur", detail: "Cetak tiket dapur tanpa harga, dari pratinjau struk.", ready: true },
   events: { label: "Event", detail: "Tandai pesanan dengan event, mis. bazar.", ready: false },
   cashCount: { label: "Hitung kas", detail: "Hitung uang di laci tiap tutup.", ready: false },
   proofPhotos: { label: "Foto bukti transfer", detail: "Foto bukti saat bayar transfer atau QRIS.", ready: false },

@@ -121,9 +121,10 @@ service cloud.firestore {
     }
 
     function isValidFeatures(data) {
-      return hasOnly(data, ['multiBranch', 'weightSales', 'bundles', 'preorder', 'customers', 'transfer', 'qris',
+      return hasOnly(data, ['multiBranch', 'receipt', 'weightSales', 'bundles', 'preorder', 'customers', 'transfer', 'qris',
           'kitchenTicket', 'events', 'cashCount', 'proofPhotos', 'updatedBy', 'updatedAt']) &&
         (!('multiBranch' in data) || data.multiBranch is bool) &&
+        (!('receipt' in data) || data.receipt is bool) &&
         (!('weightSales' in data) || data.weightSales is bool) &&
         (!('bundles' in data) || data.bundles is bool) &&
         (!('preorder' in data) || data.preorder is bool) &&

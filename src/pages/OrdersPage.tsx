@@ -1,8 +1,9 @@
 import { limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
-import { ClipboardList, Search, X } from "lucide-react";
+import { ClipboardList, Printer, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Drawer } from "../components/Drawer";
+import { ReceiptSheet } from "../components/ReceiptSheet";
 import { SelectMenu } from "../components/SelectMenu";
 import { Confirm, Empty, PaidPill, RowChevron, SegmentedControl, StatusPill, StatusTimeline, STATUS_STYLE } from "../components/ui";
 import { shopCol } from "../data/paths";
@@ -193,6 +194,10 @@ function OrderDetail({ order, open, onClose, isOwner }: { order: Order | null; o
   const [collecting, setCollecting] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmUnpaid, setConfirmUnpaid] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  useEffect(() => {
+    if (!open) setReceiptOpen(false);
+  }, [open]);
   if (!order) return null;
   const next = nextStatus(order.orderStatus);
   const cancelled = order.orderStatus === "cancelled";
@@ -220,16 +225,25 @@ function OrderDetail({ order, open, onClose, isOwner }: { order: Order | null; o
         </div>
       }
       footer={
-        !cancelled && isOwner ? (
-          <div className="flex gap-2">
-            {order.paymentStatus === "paid" && (
-              <button className="btn-neutral flex-1" onClick={() => setConfirmUnpaid(true)}>
-                Tandai belum bayar
+        features.receipt || (!cancelled && isOwner) ? (
+          <div className="space-y-2">
+            {features.receipt && (
+              <button className="btn-secondary w-full" onClick={() => setReceiptOpen(true)}>
+                <Printer size={18} /> Cetak struk
               </button>
             )}
-            <button className="btn-danger-quiet flex-1" onClick={() => setConfirmCancel(true)}>
-              Batalkan
-            </button>
+            {!cancelled && isOwner && (
+              <div className="flex gap-2">
+                {order.paymentStatus === "paid" && (
+                  <button className="btn-neutral flex-1" onClick={() => setConfirmUnpaid(true)}>
+                    Tandai belum bayar
+                  </button>
+                )}
+                <button className="btn-danger-quiet flex-1" onClick={() => setConfirmCancel(true)}>
+                  Batalkan
+                </button>
+              </div>
+            )}
           </div>
         ) : undefined
       }
@@ -333,6 +347,7 @@ function OrderDetail({ order, open, onClose, isOwner }: { order: Order | null; o
         </div>
       </div>
 
+      <ReceiptSheet order={order} open={open && receiptOpen} onClose={() => setReceiptOpen(false)} />
       <CollectPaymentSheet
         open={collecting}
         order={order}

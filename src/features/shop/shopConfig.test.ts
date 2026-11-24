@@ -28,8 +28,14 @@ describe("parseShopConfig", () => {
     expect(c.brandColor).toBe("#0f766e");
     expect(c.timezone).toBe("Asia/Makassar");
     expect(c.units.map((u) => u.code)).toEqual(["ikat"]);
-    expect(c.receipt).toEqual({ header: ["Jl. A"], footer: ["Terima kasih"], showCustomerName: false });
+    expect(c.receipt).toEqual({ header: ["Jl. A"], footer: ["Terima kasih"], showCustomerName: false, paperWidth: 32 });
     expect(c.stockPolicy).toBe("warn");
+  });
+
+  it("lebar kertas hanya 32 atau 48 kolom", () => {
+    expect(parseShopConfig({ receipt: { paperWidth: 48 } }, "x").receipt.paperWidth).toBe(48);
+    expect(parseShopConfig({ receipt: { paperWidth: 40 } }, "x").receipt.paperWidth).toBe(32);
+    expect(parseShopConfig({ receipt: { paperWidth: "48" } }, "x").receipt.paperWidth).toBe(32);
   });
 });
 

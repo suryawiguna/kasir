@@ -205,6 +205,17 @@ function ShopSection() {
             onChange={(e) => set("receipt", { ...draft.receipt, footer: lines(e.target.value) })}
           />
         </Field>
+        <Field group label="Lebar kertas" hint="Lihat ukuran gulungan di printer thermal.">
+          <SegmentedControl
+            className="w-full"
+            value={String(draft.receipt.paperWidth) as "32" | "48"}
+            onChange={(v) => set("receipt", { ...draft.receipt, paperWidth: v === "48" ? 48 : 32 })}
+            options={[
+              { value: "32", label: "58 mm" },
+              { value: "48", label: "80 mm" },
+            ]}
+          />
+        </Field>
         <Toggle
           label="Nama pelanggan di struk"
           checked={draft.receipt.showCustomerName}
@@ -241,15 +252,14 @@ function FeaturesSection() {
     <>
       <SectionIntro>Mematikan fitur menyembunyikannya dari semua perangkat. Data yang sudah tercatat tidak dihapus.</SectionIntro>
       <div className="card divide-y divide-zinc-100 px-4">
-        {FEATURE_ORDER.map((name) => {
+        {FEATURE_ORDER.filter((name) => FEATURE_INFO[name].ready).map((name) => {
           const info = FEATURE_INFO[name];
           return (
             <Toggle
               key={name}
-              label={info.ready ? info.label : `${info.label} (segera)`}
+              label={info.label}
               detail={info.detail}
               checked={features[name]}
-              disabled={!info.ready}
               onChange={(value) => saveFeatures({ ...features, [name]: value }, user?.email ?? "")}
             />
           );

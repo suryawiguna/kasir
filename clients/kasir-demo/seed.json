@@ -86,6 +86,8 @@
     "instantStatus": "completed"
   },
   "features": {
+    "receipt": true,
+    "kitchenTicket": true,
     "weightSales": true,
     "bundles": true,
     "preorder": true,

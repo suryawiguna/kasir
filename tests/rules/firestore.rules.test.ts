@@ -136,7 +136,7 @@ describe("config/shop dan settings/features", () => {
     name: "Aneka Ayam Manado",
     brandColor: "#b91c1c",
     units: [{ code: "ekor", label: "ekor", factor: 1, decimals: 0, step: 1 }],
-    receipt: { header: [], footer: ["Terima kasih"], showCustomerName: true },
+    receipt: { header: [], footer: ["Terima kasih"], showCustomerName: true, paperWidth: 32 },
     currency: "IDR",
     timezone: "Asia/Makassar",
     stockPolicy: "block",
@@ -159,6 +159,8 @@ describe("config/shop dan settings/features", () => {
   it("fitur: hanya boolean yang dikenal", async () => {
     const f = { multiBranch: true, weightSales: true, updatedBy: OWNER, updatedAt: NOW };
     await assertSucceeds(setDoc(doc(owner(), "settings/features"), f));
+    await assertSucceeds(setDoc(doc(owner(), "settings/features"), { ...f, receipt: true, kitchenTicket: true }));
+    await assertFails(setDoc(doc(owner(), "settings/features"), { ...f, receipt: "ya" }));
     await assertFails(setDoc(doc(owner(), "settings/features"), { ...f, qris: "ya" }));
     await assertFails(setDoc(doc(owner(), "settings/features"), { ...f, unknown: true }));
     await assertFails(setDoc(doc(staffTkl(), "settings/features"), { ...f, updatedBy: STAFF_TKL }));
