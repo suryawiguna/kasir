@@ -6,6 +6,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>Kasir</title>
+    <!-- Nunito, di-host sendiri (pola Haoshii). Dideklarasikan di sini, bukan di
+         index.css, supaya font sudah ada sebelum bundle CSS tiba. Ikut precache
+         service worker (woff2 di globPatterns), jadi tersedia offline sejak
+         instal pertama. font-display: block, bukan swap: swap menggambar teks
+         dengan font sistem lalu berganti di tengah muat. -->
+    <link
+      rel="preload"
+      href="/src/assets/fonts/nunito-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <style>
+      @font-face {
+        font-family: "Nunito";
+        font-style: normal;
+        font-weight: 200 1000;
+        font-display: block;
+        src: url("/src/assets/fonts/nunito-latin-wght-normal.woff2") format("woff2");
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

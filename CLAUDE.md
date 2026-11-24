@@ -83,9 +83,15 @@ Menambah aturan di salah satunya = menambah tes. Tes yang merender komponen tida
 - Tidak ada seeding dari aplikasi. Snapshot kosong dari cache ≠ tidak ada data. Listener memakai `includeMetadataChanges: true`, karena snapshot kosong yang lalu dikonfirmasi server hanya berubah metadata (tanpa ini kasir di cabang tanpa pesanan menunggu selamanya; ditemukan saat uji di browser).
 - `isCheckoutReady` sebelum checkout.
 - Uang tunai selalu diketik kasir (tombol saran = ketukan kasir), kembalian diturunkan, tidak disimpan. `paymentMethod` kosong sampai uang diterima.
-- Semua overlay lewat `Drawer`; Back/Escape lewat `useBackClose` (satu listener global, aman untuk sheet bertumpuk).
+- Semua overlay lewat `Drawer` (portal, transisi, geser untuk menutup); Back/Escape lewat `useBackClose` (port Haoshii). Jangan panggil `useBackClose` lagi untuk Drawer.
 - Update aplikasi hanya saat kasir tidak sibuk (`setTillBusy`).
 - Tidak ada hapus pesanan dari aplikasi.
+
+### Design system
+
+UI memakai design system Haoshii (komponen, token, Nunito, shell) dengan warna brand dari `config/shop.brandColor`. Aturannya di [docs/DESIGN.md](docs/DESIGN.md). Jangan menulis gaya tombol/field/overlay langsung di halaman; pakai class di `index.css` dan komponen di `src/components/`. Dropdown pakai `SelectMenu`, bukan `<select>`.
+
+Catatan dev: menambah class Tailwind baru (terutama `@utility`) kadang tidak muncul di dev server sampai `src/index.css` disentuh atau server di-restart. Build produksi tidak terpengaruh.
 
 ### Auth dan peran
 

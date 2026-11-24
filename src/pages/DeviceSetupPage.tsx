@@ -1,7 +1,9 @@
 import { getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { SelectMenu } from "../components/SelectMenu";
 import { Field } from "../components/ui";
+import { cn } from "../lib/cn";
 import { shopCol } from "../data/paths";
 import type { Order } from "../domain/types";
 import { useAuth } from "../features/auth/AuthContext";
@@ -54,57 +56,60 @@ export function DeviceSetupPage({ firstBranch }: { firstBranch?: boolean }) {
 
   if (!isOwner && !staffBranch) {
     return (
-      <div className="mx-auto max-w-md p-4">
-        <div className="card space-y-2 p-5">
-          <h1 className="text-lg font-semibold">Cabang tidak ditemukan</h1>
-          <p className="text-sm text-zinc-600">Akun ini ditempatkan di cabang yang tidak ada atau sudah diarsip. Hubungi pemilik.</p>
+      <div className="flex min-h-[100dvh] items-center justify-center p-4">
+        <div className="card card-pad w-full max-w-md space-y-2">
+          <h1 className="text-xl font-bold">Cabang tidak ditemukan</h1>
+          <p className="text-sm text-zinc-500">Akun ini ditempatkan di cabang yang tidak ada atau sudah diarsip. Hubungi pemilik.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-md p-4">
-      <div className="card space-y-4 p-5">
+    <div className="flex min-h-[100dvh] items-center justify-center p-4">
+      <div className="card card-pad w-full max-w-md space-y-5">
         <div>
-          <h1 className="text-lg font-semibold">Setup perangkat</h1>
-          <p className="text-sm text-zinc-500">Sekali saja untuk HP/tablet ini.</p>
+          <h1 className="text-xl font-bold">Setup perangkat</h1>
+          <p className="text-sm text-zinc-500">Sekali saja untuk HP atau tablet ini.</p>
         </div>
         {isOwner ? (
-          <Field label="Cabang">
-            <select className="field" value={branchId} onChange={(e) => {
-              setBranchId(e.target.value);
-              setLetter("");
-            }}>
-              {active.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name} ({b.code})
-                </option>
-              ))}
-            </select>
+          <Field group label="Cabang">
+            <SelectMenu
+              label="Cabang"
+              value={branchId}
+              onChange={(v) => {
+                setBranchId(v);
+                setLetter("");
+              }}
+              options={active.map((b) => ({ value: b.id, label: b.name, hint: b.code }))}
+            />
           </Field>
         ) : (
-          <Field label="Cabang">
-            <p className="field flex items-center bg-zinc-50">{staffBranch?.name}</p>
+          <Field group label="Cabang">
+            <p className="field-input flex items-center bg-zinc-50 font-bold text-zinc-700">{staffBranch?.name}</p>
           </Field>
         )}
         <Field
+          group
           label="Huruf perangkat"
           hint="Setiap perangkat kasir di cabang yang sama memakai huruf berbeda. Huruf masuk ke nomor pesanan (A0001)."
         >
-          <div className="mt-1 grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-1.5">
             {DEVICE_LETTERS.map((l) => (
               <button
                 key={l}
                 type="button"
                 onClick={() => setLetter(l)}
-                className={
+                aria-pressed={letter === l}
+                className={cn(
+                  "h-11 rounded-xl text-base font-bold transition duration-200 active:scale-[0.96]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
                   letter === l
-                    ? "h-10 rounded-lg bg-brand-600 font-semibold text-brand-fg"
+                    ? "bg-brand-500 text-brand-fg"
                     : used.has(l)
-                      ? "h-10 rounded-lg bg-amber-50 font-semibold text-amber-800"
-                      : "h-10 rounded-lg bg-zinc-100 font-semibold"
-                }
+                      ? "bg-amber-50 text-amber-800 hover:bg-amber-100"
+                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200",
+                )}
               >
                 {l}
               </button>
@@ -112,9 +117,9 @@ export function DeviceSetupPage({ firstBranch }: { firstBranch?: boolean }) {
           </div>
         </Field>
         {used.has(letter) && (
-          <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-            Huruf {letter} sudah dipakai perangkat lain di cabang ini (terakhir {used.get(letter)}). Pakai hanya bila
-            perangkat ini menggantikan perangkat itu.
+          <p className="card card-warn p-3 text-sm text-amber-800">
+            Huruf {letter} sudah dipakai perangkat lain di cabang ini (terakhir {used.get(letter)}). Pakai hanya bila perangkat ini
+            menggantikan perangkat itu.
           </p>
         )}
         <button
@@ -136,11 +141,11 @@ function FirstBranchForm({ by }: { by: string }) {
   return (
     <div className="space-y-3">
       <Field label="Nama cabang">
-        <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Lapak Tikala" />
+        <input className="field-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Lapak Tikala" />
       </Field>
       <Field label="Kode cabang" hint="2–6 huruf besar/angka, masuk ke nomor pesanan. Tidak bisa diganti.">
         <input
-          className="field uppercase"
+          className="field-input uppercase font-bold"
           value={code}
           maxLength={6}
           onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}

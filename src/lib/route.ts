@@ -20,7 +20,7 @@ export function useRoute(): [Route, (route: Route) => void] {
     if (next === current()) return;
     history.pushState({}, "", next);
     setRoute(next);
-    window.scrollTo(0, 0);
+    document.getElementById("page-scroller")?.scrollTo(0, 0);
   }, []);
   return [route, navigate];
 }

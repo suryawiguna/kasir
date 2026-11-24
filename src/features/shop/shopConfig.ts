@@ -88,24 +88,25 @@ const mix = (hex: string, target: [number, number, number], amount: number): str
 };
 
 /**
- * Satu warna brand menjadi tangga 50–900 untuk Tailwind (`bg-brand-600` dll).
- * 600 adalah warna yang dipilih pemilik; yang lain dicampur ke putih/hitam.
+ * Satu warna brand menjadi tangga 50–900 untuk Tailwind (`bg-brand-500` dll).
+ * 500 adalah warna yang dipilih pemilik (sama seperti Haoshii, tempat
+ * `.btn-primary` = `bg-brand-500`); yang lain dicampur ke putih/hitam.
  */
 export const brandRamp = (hex: string): Record<string, string> => {
   const base = HEX.test(hex) ? hex : DEFAULT_BRAND_COLOR;
   const white: [number, number, number] = [255, 255, 255];
   const black: [number, number, number] = [0, 0, 0];
   return {
-    "50": mix(base, white, 0.92),
-    "100": mix(base, white, 0.84),
-    "200": mix(base, white, 0.68),
+    "50": mix(base, white, 0.93),
+    "100": mix(base, white, 0.86),
+    "200": mix(base, white, 0.7),
     "300": mix(base, white, 0.5),
     "400": mix(base, white, 0.25),
-    "500": mix(base, white, 0.1),
-    "600": base.toLowerCase(),
-    "700": mix(base, black, 0.15),
-    "800": mix(base, black, 0.3),
-    "900": mix(base, black, 0.45),
+    "500": base.toLowerCase(),
+    "600": mix(base, black, 0.12),
+    "700": mix(base, black, 0.25),
+    "800": mix(base, black, 0.4),
+    "900": mix(base, black, 0.55),
   };
 };
 

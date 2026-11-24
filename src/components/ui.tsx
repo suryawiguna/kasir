@@ -1,222 +1,187 @@
-import clsx from "clsx";
-import { Minus, Plus, X } from "lucide-react";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { Check, ChevronRight, CircleCheck, Clock, Minus, Package, Plus, Trash2, XCircle } from "lucide-react";
+import type { ReactNode } from "react";
+import type { OrderStatus } from "../domain/types";
+import { ORDER_STATUS_LABEL } from "../features/orders/buildOrder";
+import { cn } from "../lib/cn";
+import { Drawer } from "./Drawer";
+
+/**
+ * Komponen kecil dari design system Haoshii (docs/DESIGN.md §5), satu file.
+ * Komponen besar (Drawer, SelectMenu, ActionMenu) punya file sendiri.
+ */
 
 /* ------------------------------------------------------------------ */
-/* Back/Escape menutup overlay paling atas                             */
+/* CountBadge, RowChevron                                              */
 /* ------------------------------------------------------------------ */
 
-interface OverlayEntry {
-  id: string;
-  close: () => void;
-  closedByBack: boolean;
+export function CountBadge({ count, active, className }: { count: string; active?: boolean; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full text-sm font-bold leading-none tabular-nums shrink-0",
+        active ? "bg-white text-brand-700" : count === "0" ? "bg-zinc-100 text-zinc-500" : "bg-brand-100 text-brand-700",
+        className,
+      )}
+    >
+      {count}
+    </span>
+  );
 }
 
-const stack: OverlayEntry[] = [];
-/** popstate yang kita picu sendiri (menutup lewat tombol), bukan Back pengguna. */
-let suppressPops = 0;
+export const RowChevron = ({ className }: { className?: string }) => (
+  <ChevronRight size={20} aria-hidden className={cn("shrink-0 text-zinc-500", className)} />
+);
 
-if (typeof window !== "undefined") {
-  window.addEventListener("popstate", () => {
-    if (suppressPops > 0) {
-      suppressPops -= 1;
-      return;
-    }
-    const top = stack[stack.length - 1];
-    if (top) {
-      top.closedByBack = true;
-      top.close();
-    }
-  });
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") stack[stack.length - 1]?.close();
-  });
+/* ------------------------------------------------------------------ */
+/* SegmentedControl                                                    */
+/* ------------------------------------------------------------------ */
+
+export interface SegmentOption<T extends string> {
+  value: T;
+  label: string;
+  count?: string;
 }
 
 /**
- * Setiap overlay yang terbuka mendorong satu entri history, sehingga tombol
- * Back di Android menutup sheet alih-alih keluar dari aplikasi. Escape
- * menutup yang paling atas. Satu listener global, supaya menutup sheet dalam
- * tidak ikut menutup sheet di bawahnya.
+ * Pilihan 2–5 opsi yang selalu terlihat. `scrollable` untuk daftar yang bisa
+ * lebih lebar dari layar (mis. kategori di Kasir).
  */
-export function useBackClose(open: boolean, onClose: () => void) {
-  const id = useId();
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
-
-  useEffect(() => {
-    if (!open) return;
-    const entry: OverlayEntry = { id, close: () => closeRef.current(), closedByBack: false };
-    stack.push(entry);
-    history.pushState({ overlay: id }, "");
-    return () => {
-      const index = stack.indexOf(entry);
-      if (index >= 0) stack.splice(index, 1);
-      if (!entry.closedByBack) {
-        suppressPops += 1;
-        history.back();
-      }
-    };
-  }, [open, id]);
-}
-
-export const overlayOpenCount = () => stack.length;
-
-/* ------------------------------------------------------------------ */
-/* Drawer: bottom sheet di HP, popup di tengah dari lg                  */
-/* ------------------------------------------------------------------ */
-
-export function Drawer({
-  open,
-  onClose,
-  title,
-  children,
-  footer,
-  wide,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: ReactNode;
-  children: ReactNode;
-  footer?: ReactNode;
-  wide?: boolean;
-}) {
-  useBackClose(open, onClose);
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-zinc-900/40" onClick={onClose} />
-      <div
-        className={clsx(
-          "relative flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-white shadow-xl lg:rounded-2xl",
-          wide ? "lg:max-w-3xl" : "lg:max-w-lg",
-        )}
-      >
-        <div className="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-3">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <button className="btn-ghost h-9 w-9 px-0" onClick={onClose} aria-label="Tutup">
-            <X size={20} />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
-        {footer && <div className="border-t border-zinc-100 px-4 py-3 pb-safe">{footer}</div>}
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Konfirmasi                                                          */
-/* ------------------------------------------------------------------ */
-
-export function Confirm({
-  open,
-  title,
-  message,
-  confirmLabel,
-  danger,
-  onConfirm,
-  onClose,
-}: {
-  open: boolean;
-  title: string;
-  message: ReactNode;
-  confirmLabel: string;
-  danger?: boolean;
-  onConfirm: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <Drawer
-      open={open}
-      onClose={onClose}
-      title={title}
-      footer={
-        <div className="flex gap-2">
-          <button className="btn-secondary flex-1" onClick={onClose}>
-            Batal
-          </button>
-          <button
-            className={clsx(danger ? "btn-danger" : "btn-primary", "flex-1")}
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
-          >
-            {confirmLabel}
-          </button>
-        </div>
-      }
-    >
-      <div className="text-sm text-zinc-700">{message}</div>
-    </Drawer>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Kontrol kecil                                                       */
-/* ------------------------------------------------------------------ */
-
-export function Stepper({
-  value,
-  onMinus,
-  onPlus,
-  plusDisabled,
-  label,
-}: {
-  value: ReactNode;
-  onMinus: () => void;
-  onPlus: () => void;
-  plusDisabled?: boolean;
-  label: string;
-}) {
-  return (
-    <div className="inline-flex h-9 items-center rounded-lg border border-zinc-200 bg-white">
-      <button className="flex h-9 w-9 items-center justify-center" onClick={onMinus} aria-label={`Kurangi ${label}`}>
-        <Minus size={16} />
-      </button>
-      <span className="min-w-10 px-1 text-center text-sm font-semibold tabular">{value}</span>
-      <button
-        className="flex h-9 w-9 items-center justify-center disabled:opacity-40"
-        onClick={onPlus}
-        disabled={plusDisabled}
-        aria-label={`Tambah ${label}`}
-      >
-        <Plus size={16} />
-      </button>
-    </div>
-  );
-}
-
-export function Segmented<T extends string>({
-  value,
+export function SegmentedControl<T extends string>({
   options,
+  value,
   onChange,
+  className,
+  scrollable = false,
 }: {
+  options: readonly SegmentOption<T>[];
   value: T;
-  options: { value: T; label: string; disabled?: boolean }[];
-  onChange: (value: T) => void;
+  onChange: (value: NoInfer<T>) => void;
+  className?: string;
+  scrollable?: boolean;
 }) {
-  return (
-    <div className="flex rounded-xl bg-zinc-100 p-1">
-      {options.map((o) => (
+  const track = (
+    <div
+      className={cn(
+        "flex bg-white border border-zinc-200 rounded-xl p-0.5",
+        scrollable ? "w-max min-w-full lg:min-w-0" : "lg:w-fit",
+        !scrollable && className,
+      )}
+    >
+      {options.map((option) => (
         <button
-          key={o.value}
+          key={option.value}
           type="button"
-          disabled={o.disabled}
-          onClick={() => onChange(o.value)}
-          className={clsx(
-            "h-9 flex-1 rounded-lg px-2 text-sm font-semibold transition-colors",
-            value === o.value ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600",
+          aria-pressed={value === option.value}
+          onClick={() => onChange(option.value)}
+          className={cn(
+            "flex-1 lg:flex-none lg:px-4 h-11 rounded-[10px] text-sm lg:text-base font-bold whitespace-nowrap",
+            scrollable && "px-4",
+            "transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
+            value === option.value ? "bg-brand-500 text-brand-fg" : "text-zinc-600 hover:text-zinc-900",
           )}
         >
-          {o.label}
+          {option.count === undefined ? (
+            option.label
+          ) : (
+            <span className="inline-flex items-center justify-center gap-1.5">
+              {option.label}
+              <CountBadge count={option.count} active={value === option.value} />
+            </span>
+          )}
         </button>
       ))}
     </div>
   );
+  if (!scrollable) return track;
+  return (
+    <div className={cn("overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", className)}>{track}</div>
+  );
 }
 
+/* ------------------------------------------------------------------ */
+/* Stepper                                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * − jumlah +. Di jumlah minimum, − menjadi tempat sampah merah: tidak ada
+ * "0" di keranjang, hanya hapus.
+ */
+export function Stepper({
+  value,
+  atMinimum,
+  canIncrease = true,
+  onDecrease,
+  onIncrease,
+  onRemove,
+  label,
+}: {
+  value: ReactNode;
+  atMinimum: boolean;
+  canIncrease?: boolean;
+  onDecrease: () => void;
+  onIncrease: () => void;
+  onRemove?: () => void;
+  label: string;
+}) {
+  const removes = atMinimum && onRemove;
+  return (
+    <div className="flex items-center bg-zinc-50 rounded-xl p-0.5 shrink-0">
+      <button
+        type="button"
+        onClick={removes ? onRemove : onDecrease}
+        aria-label={removes ? `Hapus ${label}` : `Kurangi ${label}`}
+        className={cn("btn-icon btn-ghost", removes ? "text-red-500 hover:bg-red-50" : "text-zinc-600 hover:bg-zinc-200")}
+      >
+        {removes ? <Trash2 size={18} /> : <Minus size={18} />}
+      </button>
+      <span className="min-w-[1.75rem] px-0.5 text-center text-base md:text-lg font-bold tabular-nums">{value}</span>
+      <button
+        type="button"
+        onClick={onIncrease}
+        disabled={!canIncrease}
+        aria-label={`Tambah ${label}`}
+        title={canIncrease ? undefined : "Stok tidak cukup"}
+        className="btn-icon btn-ghost hover:bg-zinc-200"
+      >
+        <Plus size={18} />
+      </button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Form                                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Label + kontrol + petunjuk/galat. `group` untuk kontrol yang bukan input
+ * (SelectMenu, SegmentedControl, grid tombol): `<label>` meneruskan klik ke
+ * tombol pertama di dalamnya, jadi kelompok itu memakai `<div>`.
+ */
+export function Field({
+  label,
+  hint,
+  error,
+  group,
+  children,
+}: {
+  label: string;
+  hint?: ReactNode;
+  error?: string;
+  group?: boolean;
+  children: ReactNode;
+}) {
+  const Tag = group ? "div" : "label";
+  return (
+    <Tag className="block">
+      <span className="field-label">{label}</span>
+      {children}
+      {error ? <span className="field-error block">{error}</span> : hint ? <span className="field-hint block">{hint}</span> : null}
+    </Tag>
+  );
+}
+
+/** Saklar on/off. Seluruh baris bisa diketuk. */
 export function Toggle({
   checked,
   onChange,
@@ -231,38 +196,202 @@ export function Toggle({
   disabled?: boolean;
 }) {
   return (
-    <label className={clsx("flex items-start justify-between gap-3 py-2", disabled && "opacity-50")}>
-      <span>
-        <span className="block text-sm font-medium">{label}</span>
-        {detail && <span className="block text-xs text-zinc-500">{detail}</span>}
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center justify-between gap-4 py-3 text-left disabled:opacity-50"
+    >
+      <span className="min-w-0">
+        <span className="block text-base font-bold text-zinc-900">{label}</span>
+        {detail && <span className="block text-sm text-zinc-500">{detail}</span>}
       </span>
+      <span
+        aria-hidden
+        className={cn(
+          "relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200",
+          checked ? "bg-brand-500" : "bg-zinc-200",
+        )}
+      >
+        <span
+          className={cn(
+            "absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200",
+            checked && "translate-x-5",
+          )}
+        />
+      </span>
+    </button>
+  );
+}
+
+/** Kotak centang besar dalam kartu tipis (pola "Bayar nanti" Haoshii). */
+export function CheckRow({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <label className="flex items-center gap-3 p-3 rounded-xl border border-zinc-200 bg-zinc-50 cursor-pointer">
       <input
         type="checkbox"
-        className="mt-1 h-5 w-5 accent-[var(--brand-600)]"
         checked={checked}
-        disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
+        className="w-5 h-5 accent-[var(--brand-500)] shrink-0"
       />
+      <span className="text-sm md:text-base font-medium">{label}</span>
     </label>
   );
 }
 
-export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
-  return (
-    <label className="block">
-      <span className="label">{label}</span>
-      {children}
-      {hint && <span className="hint block">{hint}</span>}
-    </label>
-  );
-}
+/* ------------------------------------------------------------------ */
+/* Empty, Skeleton                                                     */
+/* ------------------------------------------------------------------ */
 
-export function Empty({ title, detail, action }: { title: string; detail?: string; action?: ReactNode }) {
+export function Empty({ icon, title, detail, action }: { icon?: ReactNode; title: string; detail?: string; action?: ReactNode }) {
   return (
     <div className="card flex flex-col items-center gap-2 px-6 py-10 text-center">
-      <p className="font-semibold">{title}</p>
+      {icon && <div className="mb-2 text-zinc-300">{icon}</div>}
+      <p className="font-bold text-zinc-700">{title}</p>
       {detail && <p className="max-w-sm text-sm text-zinc-500">{detail}</p>}
       {action}
     </div>
   );
 }
+
+export const Skeleton = ({ className }: { className?: string }) => (
+  <div className={cn("animate-pulse rounded-lg bg-zinc-200/70", className)} />
+);
+
+/* ------------------------------------------------------------------ */
+/* Konfirmasi                                                          */
+/* ------------------------------------------------------------------ */
+
+/** Dialog konfirmasi: Drawer dialog kecil, aksi di kiri, Batal di kanan (Haoshii). */
+export function Confirm({
+  open,
+  title,
+  message,
+  confirmLabel,
+  tone = "primary",
+  onConfirm,
+  onClose,
+}: {
+  open: boolean;
+  title: string;
+  message: ReactNode;
+  confirmLabel: string;
+  tone?: "primary" | "danger" | "warning";
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Drawer open={open} onClose={onClose} variant="dialog" size="xs" title={title}>
+      <div className="space-y-4">
+        <div className="text-base text-zinc-600">{message}</div>
+        <div className="flex flex-col gap-2 lg:flex-row">
+          <button
+            type="button"
+            className={cn(
+              "w-full lg:flex-1",
+              tone === "danger" ? "btn-danger" : "btn-primary",
+              tone === "warning" && "bg-amber-600 text-white hover:bg-amber-700",
+            )}
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+          >
+            {confirmLabel}
+          </button>
+          <button type="button" className="btn-neutral w-full lg:flex-1" onClick={onClose}>
+            Batal
+          </button>
+        </div>
+      </div>
+    </Drawer>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Status pesanan                                                      */
+/* ------------------------------------------------------------------ */
+
+export const STATUS_STYLE: Record<OrderStatus, { color: string; Icon: typeof Clock }> = {
+  pending: { color: "bg-amber-100 text-amber-800", Icon: Clock },
+  ready: { color: "bg-sky-100 text-sky-800", Icon: Package },
+  completed: { color: "bg-emerald-100 text-emerald-800", Icon: CircleCheck },
+  cancelled: { color: "bg-zinc-100 text-zinc-500", Icon: XCircle },
+};
+
+export function StatusPill({ status, className }: { status: OrderStatus; className?: string }) {
+  const { color, Icon } = STATUS_STYLE[status];
+  return (
+    <span className={cn("pill", color, className)}>
+      <Icon size={14} strokeWidth={status === "completed" ? 3 : 2} />
+      {ORDER_STATUS_LABEL[status]}
+    </span>
+  );
+}
+
+export function PaidPill({ paid }: { paid: boolean }) {
+  return paid ? (
+    <span className="pill bg-emerald-100 text-emerald-800">
+      <Check size={14} strokeWidth={3} /> Lunas
+    </span>
+  ) : (
+    <span className="pill bg-amber-100 text-amber-800">Belum bayar</span>
+  );
+}
+
+const STEPS: OrderStatus[] = ["pending", "ready", "completed"];
+
+/**
+ * Diproses → Siap → Selesai. Langkah sekarang terisi warnanya, yang lain
+ * abu-abu (Haoshii DESIGN.md §5.15).
+ */
+export function StatusTimeline({ status }: { status: OrderStatus }) {
+  const current = STEPS.indexOf(status);
+  return (
+    <ol className="flex items-center gap-1">
+      {STEPS.map((step, i) => {
+        const { color, Icon } = STATUS_STYLE[step];
+        const active = i === current;
+        const done = i < current;
+        return (
+          <li key={step} className="flex flex-1 items-center gap-1">
+            <span
+              className={cn(
+                "flex flex-1 items-center justify-center gap-1.5 h-10 rounded-xl text-sm font-bold",
+                active ? color : done ? "bg-zinc-100 text-zinc-500" : "bg-zinc-50 text-zinc-400",
+              )}
+            >
+              <Icon size={16} />
+              {ORDER_STATUS_LABEL[step]}
+            </span>
+            {i < STEPS.length - 1 && <ChevronRight size={16} className="shrink-0 text-zinc-300" />}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Navigasi                                                            */
+/* ------------------------------------------------------------------ */
+
+export const navItemClass = (active: boolean) =>
+  cn(
+    "flex items-center gap-3 w-full h-12 px-4 rounded-xl text-base font-bold whitespace-nowrap transition duration-200 active:scale-[0.98]",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 [&>svg]:shrink-0",
+    active ? "bg-brand-50 text-brand-700" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900",
+  );
+
+export const bottomNavItemClass = (active: boolean) =>
+  cn(
+    "flex items-start justify-center w-full min-w-0 h-nav-safe pb-safe transition duration-200",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/40",
+    active ? "bg-brand-100 text-brand-700" : "text-zinc-400 hover:text-zinc-600",
+  );
+
+export const bottomNavBoxClass = "shrink-0 flex flex-col items-center justify-center gap-1 w-full h-16";
+
+export const bottomNavLabelClass = (active: boolean) => cn("leading-none text-xs", active ? "font-bold" : "font-medium");

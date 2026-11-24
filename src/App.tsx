@@ -1,9 +1,10 @@
 import { lazy, Suspense } from "react";
 import { AppShell } from "./components/AppShell";
+import { Skeleton } from "./components/ui";
 import { useAuth } from "./features/auth/AuthContext";
 import { ACCESS_PROBLEM_TEXT, accessProblem } from "./features/auth/claims";
 import { DeviceProvider, useDevice } from "./features/device/DeviceContext";
-import { BranchProvider } from "./features/orders/BranchContext";
+import { BranchProvider, useBranch } from "./features/orders/BranchContext";
 import { ShopProvider, useShop } from "./features/shop/ShopContext";
 import { LoginPage } from "./pages/LoginPage";
 import { DeviceSetupPage } from "./pages/DeviceSetupPage";
@@ -31,10 +32,10 @@ export default function App() {
   if (problem) {
     return (
       <Centered>
-        <h1 className="text-lg font-semibold">Belum ada akses</h1>
-        <p className="text-sm text-zinc-600">{ACCESS_PROBLEM_TEXT[problem]}</p>
-        <p className="text-xs text-zinc-500">{user.email}</p>
-        <button className="btn-secondary w-full" onClick={() => void logout()}>
+        <h1 className="text-xl font-bold">Belum ada akses</h1>
+        <p className="text-sm text-zinc-500">{ACCESS_PROBLEM_TEXT[problem]}</p>
+        <p className="text-xs text-zinc-400">{user.email}</p>
+        <button className="btn-neutral w-full" onClick={() => void logout()}>
           Keluar
         </button>
       </Centered>
@@ -59,8 +60,8 @@ function Gate() {
   if (branches.length === 0) {
     return (
       <Centered>
-        <h1 className="text-lg font-semibold">Toko belum disiapkan</h1>
-        <p className="text-sm text-zinc-600">
+        <h1 className="text-xl font-bold">Toko belum disiapkan</h1>
+        <p className="text-sm text-zinc-500">
           {claims?.role === "owner"
             ? "Belum ada cabang. Jalankan seed toko (npm run seed) atau buat cabang pertama di bawah."
             : "Belum ada cabang. Minta pemilik menyiapkan toko."}
@@ -83,10 +84,13 @@ function Tabs() {
   const { claims } = useAuth();
   const isOwner = claims?.role === "owner";
   const tab = route === "/pengaturan" && !isOwner ? "/" : route;
+  const { orders } = useBranch();
+  // Pesanan yang masih perlu disiapkan atau diambil di cabang ini.
+  const openOrders = orders.filter((o) => o.orderStatus === "pending" || o.orderStatus === "ready").length;
 
   return (
-    <AppShell route={tab} navigate={navigate}>
-      <Suspense fallback={<div className="p-6 text-sm text-zinc-500">Memuat…</div>}>
+    <AppShell route={tab} navigate={navigate} badges={{ "/pesanan": openOrders }}>
+      <Suspense fallback={<TabSkeleton />}>
         {tab === "/" && <PosPage />}
         {tab === "/pesanan" && <OrdersPage />}
         {tab === "/stok" && <StockPage />}
@@ -96,18 +100,28 @@ function Tabs() {
   );
 }
 
+function TabSkeleton() {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Skeleton key={i} className="h-[4.5rem] rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
 function Splash() {
   return (
-    <div className="flex min-h-dvh items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+    <div className="flex min-h-[100dvh] items-center justify-center">
+      <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-100 border-t-brand-500" />
     </div>
   );
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-dvh items-center justify-center p-4">
-      <div className="card w-full max-w-md space-y-3 p-5">{children}</div>
+    <div className="flex min-h-[100dvh] items-center justify-center p-4">
+      <div className="card card-pad w-full max-w-md space-y-3">{children}</div>
     </div>
   );
 }

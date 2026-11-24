@@ -1,18 +1,20 @@
-import clsx from "clsx";
 import { getDocs, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
-import { History } from "lucide-react";
+import { Boxes, History, PackagePlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Drawer, Segmented } from "../components/ui";
+import { Drawer } from "../components/Drawer";
+import { SelectMenu } from "../components/SelectMenu";
+import { Empty, Field, SegmentedControl } from "../components/ui";
 import { shopCol, shopDoc } from "../data/paths";
 import type { StockChange, StockItem } from "../domain/types";
-import { getBusinessDate, getBusinessTime } from "../lib/businessDate";
 import { useAuth } from "../features/auth/AuthContext";
 import { useBranch } from "../features/orders/BranchContext";
 import { adjustStock } from "../features/orders/orderActions";
 import { useShop } from "../features/shop/ShopContext";
 import { stockLevelState } from "../features/stock/consumption";
-import { findUnit, formatQuantity, parseQuantityInput } from "../features/units/units";
+import { findUnit, formatQuantity, formatUnitNumber, parseQuantityInput } from "../features/units/units";
+import { getBusinessDate, getBusinessTime } from "../lib/businessDate";
+import { cn } from "../lib/cn";
 
 /** Stok per cabang: lihat, stok masuk, hitung ulang, dan Riwayat. */
 export default function StockPage() {
@@ -24,6 +26,7 @@ export default function StockPage() {
   const [otherLevels, setOtherLevels] = useState<Record<string, number> | null>(null);
   const [editing, setEditing] = useState<StockItem | null>(null);
   const [history, setHistory] = useState<StockChange[] | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const isOwn = branchId === branch?.id;
 
   useEffect(() => {
@@ -35,39 +38,50 @@ export default function StockPage() {
 
   const levels = isOwn ? (inventory?.levels ?? {}) : (otherLevels ?? {});
   const items = stockItems.filter((s) => s.active);
+  const attention = items.filter((s) => stockLevelState(levels[s.id] ?? 0, s) !== "ok").length;
 
-  const loadHistory = () => {
-    // Dibaca saat diminta, bukan listener: riwayat jarang dibuka.
-    getDocs(
-      query(shopCol("stockChanges"), where("branchId", "==", branchId), orderBy("changedAt", "desc"), limit(50)),
-    )
+  const openHistory = () => {
+    setHistoryOpen(true);
+    setHistory(null);
+    // Dibaca saat diminta, bukan listener: riwayat jarang dibuka (hemat kuota).
+    getDocs(query(shopCol("stockChanges"), where("branchId", "==", branchId), orderBy("changedAt", "desc"), limit(50)))
       .then((snap) => setHistory(snap.docs.map((d) => d.data() as StockChange)))
-      .catch(() => toast.error("Riwayat gagal dimuat. Periksa koneksi."));
+      .catch(() => {
+        setHistory([]);
+        toast.error("Riwayat gagal dimuat. Periksa koneksi.");
+      });
   };
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         {isOwner && branches.length > 1 && (
-          <select className="field w-auto" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+          <SelectMenu
+            className="w-full sm:w-56"
+            label="Cabang"
+            value={branchId}
+            onChange={setBranchId}
+            options={branches.map((b) => ({ value: b.id, label: b.name }))}
+          />
         )}
-        <button className="btn-secondary ml-auto" onClick={loadHistory}>
-          <History size={16} /> Riwayat
+        <div className="flex-1">
+          {attention > 0 && (
+            <span className="pill bg-amber-100 text-amber-800">{attention} item menipis atau habis</span>
+          )}
+        </div>
+        <button className="btn-neutral" onClick={openHistory}>
+          <History size={18} /> Riwayat
         </button>
       </div>
 
       {items.length === 0 ? (
-        <div className="card p-8 text-center text-sm text-zinc-500">
-          Belum ada item stok. {isOwner ? "Tambahkan di Pengaturan → Item stok, atau pilih mode stok di produk." : ""}
-        </div>
+        <Empty
+          icon={<Boxes size={40} />}
+          title="Belum ada item stok"
+          detail={isOwner ? "Tambahkan di Pengaturan → Item stok, atau pilih cara hitung stok di produk." : undefined}
+        />
       ) : (
-        <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => {
             const level = levels[item.id] ?? 0;
             const state = stockLevelState(level, item);
@@ -76,21 +90,26 @@ export default function StockPage() {
               <li key={item.id}>
                 <button
                   onClick={() => setEditing(item)}
-                  className={clsx(
-                    "card flex w-full items-center justify-between gap-2 p-4 text-left",
-                    state === "low" && "border-amber-300 bg-amber-50",
-                    state === "empty" && "border-red-300 bg-red-50",
+                  className={cn(
+                    "card card-pad flex w-full items-center justify-between gap-3 text-left transition duration-200 active:scale-[0.98] hover:border-zinc-300",
+                    state === "low" && "card-warn",
+                    state === "empty" && "card-danger",
                   )}
                 >
                   <span className="min-w-0">
-                    <span className="block truncate font-semibold">{item.name}</span>
-                    {state !== "ok" && (
-                      <span className={clsx("pill", state === "low" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-700")}>
+                    <span className="block truncate font-bold">{item.name}</span>
+                    {state !== "ok" ? (
+                      <span className={cn("pill mt-1", state === "low" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-700")}>
                         {state === "low" ? "Menipis" : "Habis"}
                       </span>
+                    ) : (
+                      <span className="block text-sm text-zinc-500">Ketuk untuk ubah</span>
                     )}
                   </span>
-                  <span className="text-xl font-bold tabular">{formatQuantity(level, unit)}</span>
+                  <span className="text-2xl font-bold tabular-nums whitespace-nowrap">
+                    {formatUnitNumber(level, unit)}
+                    <span className="ml-1 text-sm font-medium text-zinc-500">{unit.label}</span>
+                  </span>
                 </button>
               </li>
             );
@@ -98,35 +117,38 @@ export default function StockPage() {
         </ul>
       )}
 
-      {editing && (
-        <AdjustSheet
-          item={editing}
-          branchId={branchId}
-          current={levels[editing.id] ?? 0}
-          onClose={() => setEditing(null)}
-        />
-      )}
+      <AdjustSheet item={editing} branchId={branchId} current={editing ? (levels[editing.id] ?? 0) : 0} onClose={() => setEditing(null)} />
 
-      <Drawer open={history !== null} onClose={() => setHistory(null)} title="Riwayat stok">
-        {history?.length === 0 && <p className="text-sm text-zinc-500">Belum ada perubahan manual.</p>}
-        <ul className="divide-y divide-zinc-100 text-sm">
-          {history?.map((h) => {
-            const item = stockItems.find((s) => s.id === h.stockItemId);
-            const unit = findUnit(config.units, item?.unit ?? "");
-            return (
-              <li key={h.id} className="py-2">
-                <p className="font-medium">
-                  {item?.name ?? h.stockItemId}: {formatQuantity(h.before, unit)} → {formatQuantity(h.after, unit)}
-                </p>
-                <p className="text-xs text-zinc-500">
-                  {h.kind === "add" ? "Stok masuk" : "Hitung ulang"} · {getBusinessDate(config.timezone, h.changedAt)}{" "}
-                  {getBusinessTime(config.timezone, h.changedAt)} · {h.changedBy}
-                  {h.note ? ` · ${h.note}` : ""}
-                </p>
-              </li>
-            );
-          })}
-        </ul>
+      <Drawer open={historyOpen} onClose={() => setHistoryOpen(false)} title="Riwayat stok" bodyClassName="p-0">
+        {history === null ? (
+          <p className="p-4 text-sm text-zinc-500">Memuat…</p>
+        ) : history.length === 0 ? (
+          <p className="p-4 text-sm text-zinc-500">Belum ada perubahan manual.</p>
+        ) : (
+          <ul className="divide-y divide-zinc-100">
+            {history.map((h) => {
+              const item = stockItems.find((s) => s.id === h.stockItemId);
+              const unit = findUnit(config.units, item?.unit ?? "");
+              return (
+                <li key={h.id} className="px-4 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-bold">{item?.name ?? h.stockItemId}</p>
+                    <span className={cn("pill", h.kind === "add" ? "bg-emerald-100 text-emerald-800" : "bg-sky-100 text-sky-800")}>
+                      {h.kind === "add" ? "Stok masuk" : "Hitung ulang"}
+                    </span>
+                  </div>
+                  <p className="text-sm tabular-nums">
+                    {formatQuantity(h.before, unit)} → <span className="font-bold">{formatQuantity(h.after, unit)}</span>
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    {getBusinessDate(config.timezone, h.changedAt)} {getBusinessTime(config.timezone, h.changedAt)} · {h.changedBy}
+                    {h.note ? ` · ${h.note}` : ""}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </Drawer>
     </div>
   );
@@ -138,44 +160,64 @@ function AdjustSheet({
   current,
   onClose,
 }: {
-  item: StockItem;
+  item: StockItem | null;
   branchId: string;
   current: number;
   onClose: () => void;
 }) {
   const { config } = useShop();
   const { user } = useAuth();
-  const unit = findUnit(config.units, item.unit);
   const [mode, setMode] = useState<"add" | "set">("add");
   const [text, setText] = useState("");
   const [note, setNote] = useState("");
+  const [shown, setShown] = useState<StockItem | null>(item);
+  useEffect(() => {
+    if (!item) return;
+    setShown(item);
+    setMode("add");
+    setText("");
+    setNote("");
+  }, [item]);
+  if (!shown) return null;
+  const unit = findUnit(config.units, shown.unit);
   const value = mode === "set" && text.trim() === "0" ? 0 : parseQuantityInput(text, unit);
   const after = value === null ? null : mode === "add" ? current + value : value;
 
   return (
     <Drawer
-      open
+      open={item !== null}
       onClose={onClose}
-      title={item.name}
+      size="sm"
+      title={shown.name}
       footer={
         <button
           className="btn-primary w-full"
           disabled={value === null}
           onClick={() => {
-            adjustStock({ branchId, stockItemId: item.id, mode, value: value!, current, note: note.trim() || undefined, by: user?.email ?? "" });
+            adjustStock({
+              branchId,
+              stockItemId: shown.id,
+              mode,
+              value: value!,
+              current,
+              note: note.trim() || undefined,
+              by: user?.email ?? "",
+            });
             toast.success("Stok disimpan");
             onClose();
           }}
         >
-          Simpan
+          <PackagePlus size={18} /> Simpan
         </button>
       }
     >
-      <div className="space-y-3">
-        <p className="text-sm text-zinc-600">
-          Sekarang: <span className="font-semibold tabular">{formatQuantity(current, unit)}</span>
-        </p>
-        <Segmented
+      <div className="space-y-4">
+        <div className="card card-tint card-pad flex items-center justify-between">
+          <span className="text-sm font-medium text-brand-700">Sekarang</span>
+          <span className="text-xl font-bold tabular-nums">{formatQuantity(current, unit)}</span>
+        </div>
+        <SegmentedControl
+          className="w-full"
           value={mode}
           onChange={setMode}
           options={[
@@ -183,17 +225,21 @@ function AdjustSheet({
             { value: "set", label: "Hitung ulang" },
           ]}
         />
-        <label className="block">
-          <span className="label">{mode === "add" ? `Jumlah masuk (${unit.label})` : `Hasil hitung (${unit.label})`}</span>
-          <input className="field text-xl tabular" inputMode="decimal" autoFocus value={text} onChange={(e) => setText(e.target.value)} />
-        </label>
-        <label className="block">
-          <span className="label">Catatan (opsional)</span>
-          <input className="field" value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} />
-        </label>
+        <Field label={mode === "add" ? `Jumlah masuk (${unit.label})` : `Hasil hitung (${unit.label})`}>
+          <input
+            className="field-input h-14 text-2xl font-bold tabular-nums"
+            inputMode="decimal"
+            autoFocus
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+        </Field>
+        <Field label="Catatan (opsional)">
+          <input className="field-input" value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} />
+        </Field>
         {after !== null && (
-          <p className="text-sm">
-            Menjadi <span className="font-semibold tabular">{formatQuantity(after, unit)}</span>
+          <p className="text-base">
+            Menjadi <span className="font-bold tabular-nums">{formatQuantity(after, unit)}</span>
           </p>
         )}
       </div>

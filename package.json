@@ -24,7 +24,8 @@
     "lucide-react": "^1.78.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "sonner": "^2.0.8"
+    "sonner": "^2.0.8",
+    "tailwind-merge": "^3.7.1"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",

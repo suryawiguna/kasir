@@ -16,7 +16,7 @@ createRoot(document.getElementById("root")!).render(
         <App />
       </AuthProvider>
       {/* Di luar App: layar masuk juga butuh toast. */}
-      <Toaster position="top-center" richColors closeButton />
+      <Toaster position="top-center" expand richColors closeButton />
     </ErrorBoundary>
   </StrictMode>,
 );

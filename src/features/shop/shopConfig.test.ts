@@ -34,9 +34,9 @@ describe("parseShopConfig", () => {
 });
 
 describe("brand", () => {
-  it("tangga warna memakai warna pilihan di 600", () => {
+  it("tangga warna memakai warna pilihan di 500", () => {
     const ramp = brandRamp("#DC2626");
-    expect(ramp["600"]).toBe("#dc2626");
+    expect(ramp["500"]).toBe("#dc2626");
     expect(Object.keys(ramp)).toHaveLength(10);
     expect(brandForeground("#dc2626")).toBe("#ffffff");
     expect(brandForeground("#fde047")).toBe("#18181b");

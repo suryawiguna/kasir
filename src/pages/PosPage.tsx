@@ -1,30 +1,41 @@
-import clsx from "clsx";
-import { Scale, ShoppingBag, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, CircleCheck, Plus, Scale, ShoppingCart, SlidersHorizontal, Trash2, User } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Drawer, Segmented, Stepper } from "../components/ui";
-import type { LineChoice, Order, OrderType, PaymentMethod, Product } from "../domain/types";
+import { CLOSE_ICON_SIZE, Drawer } from "../components/Drawer";
+import { CheckRow, Confirm, SegmentedControl, Stepper } from "../components/ui";
+import type { LineChoice, Order, PaymentMethod, Product, Unit } from "../domain/types";
+import { useBranch } from "../features/orders/BranchContext";
 import { formatOrderNumberShort } from "../features/orders/orderNumber";
 import { changeDue, cashSuggestions } from "../features/pos/cart";
-import { usePosState, type CheckoutRequest, type PosState } from "../features/pos/usePosState";
+import { usePosState, type PosState } from "../features/pos/usePosState";
 import { formatAmount, formatRupiah, parseRupiahInput } from "../features/pricing/money";
 import { basePriceFor, lineTotal, unitPriceFor } from "../features/pricing/pricing";
-import { useShop } from "../features/shop/ShopContext";
-import { groupPickCount, togglePick, validateChoices, type Shortage } from "../features/stock/consumption";
-import { findUnit, formatQuantity, formatUnitNumber, parseQuantityInput } from "../features/units/units";
-import { useBranch } from "../features/orders/BranchContext";
 import { setTillBusy } from "../features/pwa/appUpdate";
+import { useShop } from "../features/shop/ShopContext";
+import { groupPickCount, stockLevelState, togglePick, validateChoices, type Shortage } from "../features/stock/consumption";
+import { useIsDesktop } from "../features/ui/useIsDesktop";
+import { findUnit, formatQuantity, formatUnitNumber, parseQuantityInput, stepBase } from "../features/units/units";
+import { cn } from "../lib/cn";
 
+/**
+ * Kasir. Menu satu kolom (Haoshii): seluruh baris menambah satu, stepper
+ * muncul di baris begitu produk ada di keranjang, jadi tidak perlu bolak-balik
+ * membuka keranjang. Keranjang adalah kolom tetap dari `lg`, dan sheet di HP
+ * yang dibuka dari bar mengambang di atas nav bawah.
+ */
 export default function PosPage() {
   const pos = usePosState();
   const { categories, config } = useShop();
   const { branch, inventoryMissing } = useBranch();
-  const [category, setCategory] = useState<string>("all");
+  const isDesktop = useIsDesktop();
+  const [category, setCategory] = useState("all");
   const [weightFor, setWeightFor] = useState<Product | null>(null);
   const [choiceFor, setChoiceFor] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [done, setDone] = useState<{ order: Order; change: number | null } | null>(null);
+  const branchId = branch?.id ?? "";
 
   const anyOverlay = Boolean(weightFor || choiceFor || cartOpen || checkoutOpen || done);
   useEffect(() => {
@@ -36,6 +47,7 @@ export default function PosPage() {
     return categories.filter((c) => c.active && ids.has(c.id));
   }, [categories, pos.sellable]);
   const visible = category === "all" ? pos.sellable : pos.sellable.filter((p) => (p.categoryId ?? "") === category);
+  const cartCount = pos.cart.length;
 
   const tap = (product: Product) => {
     if (product.soldBy === "weight") return setWeightFor(product);
@@ -43,279 +55,369 @@ export default function PosPage() {
     pos.add(product);
   };
 
-  const itemCount = pos.cart.length;
+  const cartHeaderActions = cartCount > 0 && (
+    <button
+      onClick={() => setConfirmClear(true)}
+      aria-label="Hapus semua item"
+      className="btn-icon btn-ghost hover:text-red-600 hover:bg-red-50"
+    >
+      <Trash2 size={18} />
+    </button>
+  );
+
+  const cartFooter = (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="font-medium text-zinc-600">Total</span>
+        <span className="font-bold text-2xl text-brand-700 tabular-nums">{formatRupiah(pos.total)}</span>
+      </div>
+      <button
+        className="btn-primary w-full"
+        disabled={cartCount === 0}
+        onClick={() => {
+          setCartOpen(false);
+          setCheckoutOpen(true);
+        }}
+      >
+        Bayar
+      </button>
+    </div>
+  );
 
   return (
-    <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-4">
-      <section className="min-w-0">
+    <div className="lg:flex lg:items-start lg:gap-4">
+      <section className="flex-1 min-w-0">
         {inventoryMissing && (
-          <p className="mb-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">
-            Dokumen stok cabang {branch?.name} belum ada. Pemilik perlu membuka Pengaturan → Cabang lalu simpan cabang
-            ini, atau jalankan seed.
+          <p className="card card-danger mb-2 p-3 text-sm text-red-700">
+            Dokumen stok cabang {branch?.name} belum ada. Pemilik perlu menyimpan ulang cabang ini di Pengaturan → Cabang,
+            atau menjalankan seed.
           </p>
         )}
-        {usedCategories.length > 0 && (
-          <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1">
-            <Chip active={category === "all"} onClick={() => setCategory("all")}>
-              Semua
-            </Chip>
-            {usedCategories.map((c) => (
-              <Chip key={c.id} active={category === c.id} onClick={() => setCategory(c.id)}>
-                {c.name}
-              </Chip>
-            ))}
-          </div>
+        <StockStrip />
+        {usedCategories.length > 1 && (
+          <SegmentedControl
+            scrollable
+            className="mb-2"
+            value={category}
+            onChange={setCategory}
+            options={[{ value: "all", label: "Semua" }, ...usedCategories.map((c) => ({ value: c.id, label: c.name }))]}
+          />
         )}
         {visible.length === 0 ? (
           <div className="card p-8 text-center text-sm text-zinc-500">
             Belum ada produk untuk cabang ini. Tambahkan di Pengaturan → Produk.
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+          <div className={cn("space-y-2", cartCount > 0 ? "pb-cart-bar lg:pb-0" : "pb-2")}>
             {visible.map((p) => (
-              <ProductCard key={p.id} product={p} pos={pos} branchId={branch?.id ?? ""} onTap={() => tap(p)} />
+              <ProductRow key={p.id} product={p} pos={pos} branchId={branchId} units={config.units} onTap={() => tap(p)} />
             ))}
           </div>
         )}
       </section>
 
-      <aside className="hidden lg:block">
-        <div className="card sticky top-4 flex max-h-[calc(100dvh-2rem)] flex-col">
-          <CartBody pos={pos} />
-          <CartFooter pos={pos} onCheckout={() => setCheckoutOpen(true)} />
-        </div>
-      </aside>
-
-      {itemCount > 0 && (
-        <button
-          className="btn-primary fixed inset-x-4 bottom-20 z-20 h-14 justify-between shadow-lg lg:hidden"
-          onClick={() => setCartOpen(true)}
+      {isDesktop ? (
+        <aside className="w-[400px] xl:w-[420px] shrink-0 sticky top-0 bg-white rounded-xl border border-zinc-200 flex flex-col p-5 max-h-[calc(100dvh-2rem)]">
+          <div className="flex items-center justify-between mb-5 shrink-0">
+            <div className="flex items-center gap-2">
+              <ShoppingCart size={18} className="text-brand-700" />
+              <h3 className="font-bold text-xl">Keranjang</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 bg-brand-500/10 text-brand-700 rounded-xl text-sm font-bold">{cartCount} item</span>
+              {cartHeaderActions}
+            </div>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-2 pr-2 -mr-2">
+            <CartLines pos={pos} />
+          </div>
+          <div className="mt-4 pt-4 border-t border-zinc-200 border-dashed shrink-0">{cartFooter}</div>
+        </aside>
+      ) : (
+        <Drawer
+          open={cartOpen}
+          onClose={() => setCartOpen(false)}
+          header={
+            <div className="h-14 px-4 border-b border-zinc-200 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShoppingCart size={18} className="text-brand-700" />
+                <h3 className="font-bold text-lg">Keranjang</h3>
+                <span className="px-2 py-1 bg-brand-500/10 text-brand-700 rounded-xl text-xs font-bold">{cartCount} item</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {cartHeaderActions}
+                <button onClick={() => setCartOpen(false)} aria-label="Tutup keranjang" className="btn-icon btn-ghost">
+                  <ChevronDown size={CLOSE_ICON_SIZE} />
+                </button>
+              </div>
+            </div>
+          }
+          footer={cartFooter}
+          bodyClassName="p-4 space-y-2"
         >
-          <span className="flex items-center gap-2">
-            <ShoppingBag size={18} /> {itemCount} item
+          <CartLines pos={pos} />
+        </Drawer>
+      )}
+
+      {/* Di atas nav bawah, tempat ibu jari berada setelah mengetuk menu. */}
+      {!isDesktop && cartCount > 0 && !cartOpen && (
+        <button
+          onClick={() => setCartOpen(true)}
+          className="fixed bottom-above-nav inset-x-0 z-30 mx-3 mb-3 h-14 px-4 rounded-xl bg-brand-500 text-brand-fg flex items-center justify-between gap-3 shadow-lg active:scale-[0.98] transition duration-200"
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <span className="relative shrink-0">
+              <ShoppingCart size={18} />
+              <span className="absolute -top-1.5 -right-2 min-w-[1.1rem] h-[1.1rem] px-1 bg-white text-brand-700 text-xs font-bold rounded-full flex items-center justify-center">
+                {cartCount}
+              </span>
+            </span>
+            <span className="font-bold text-sm truncate tabular-nums">{formatRupiah(pos.total)}</span>
           </span>
-          <span className="tabular">{formatRupiah(pos.total)}</span>
+          <span className="font-bold text-sm shrink-0">Lihat keranjang</span>
         </button>
       )}
 
-      <Drawer
-        open={cartOpen}
-        onClose={() => setCartOpen(false)}
-        title="Keranjang"
-        footer={
-          <CartFooter
-            pos={pos}
-            onCheckout={() => {
-              setCartOpen(false);
-              setCheckoutOpen(true);
-            }}
-          />
-        }
-      >
-        <CartBody pos={pos} bare />
-      </Drawer>
-
-      {weightFor && (
-        <WeightSheet
-          product={weightFor}
-          pos={pos}
-          branchId={branch?.id ?? ""}
-          onClose={() => setWeightFor(null)}
-          units={config.units}
-        />
-      )}
-      {choiceFor && <ChoiceSheet product={choiceFor} pos={pos} branchId={branch?.id ?? ""} onClose={() => setChoiceFor(null)} />}
-      {checkoutOpen && (
-        <CheckoutSheet
-          pos={pos}
-          onClose={() => setCheckoutOpen(false)}
-          onDone={(order, change) => {
-            setCheckoutOpen(false);
-            setDone({ order, change });
-          }}
-        />
-      )}
-      <Drawer open={done !== null} onClose={() => setDone(null)} title="Pesanan tersimpan">
-        {done && (
-          <div className="space-y-3 text-center">
-            <p className="text-sm text-zinc-500">Nomor pesanan</p>
-            <p className="text-4xl font-bold tabular">{formatOrderNumberShort(done.order.orderNumber)}</p>
-            <p className="text-lg font-semibold tabular">{formatRupiah(done.order.totalAmount)}</p>
-            {done.change !== null && (
-              <p className="rounded-xl bg-brand-50 p-3 text-lg font-semibold text-brand-800">
-                Kembalian {formatRupiah(done.change)}
-              </p>
-            )}
-            {done.order.paymentStatus === "unpaid" && (
-              <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">Belum dibayar. Terima di tab Pesanan.</p>
-            )}
-            <button className="btn-primary w-full" onClick={() => setDone(null)}>
-              Pesanan baru
-            </button>
-          </div>
-        )}
-      </Drawer>
+      <WeightSheet product={weightFor} pos={pos} branchId={branchId} units={config.units} onClose={() => setWeightFor(null)} />
+      <ChoiceSheet product={choiceFor} pos={pos} branchId={branchId} onClose={() => setChoiceFor(null)} />
+      <CheckoutSheet
+        open={checkoutOpen}
+        pos={pos}
+        onClose={() => setCheckoutOpen(false)}
+        onDone={(order, change) => {
+          setCheckoutOpen(false);
+          setDone({ order, change });
+        }}
+      />
+      <DoneDialog done={done} onClose={() => setDone(null)} />
+      <Confirm
+        open={confirmClear}
+        onClose={() => setConfirmClear(false)}
+        title="Kosongkan keranjang?"
+        message="Semua item di keranjang akan dihapus."
+        confirmLabel="Ya, kosongkan"
+        tone="danger"
+        onConfirm={pos.clear}
+      />
     </div>
   );
 }
 
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+/* ------------------------------------------------------------------ */
+
+/** Sisa stok di atas menu, HP saja (desktop: di sidebar). */
+function StockStrip() {
+  const { stockItems, config } = useShop();
+  const { inventory } = useBranch();
+  const items = stockItems.filter((s) => s.active);
+  if (!inventory || items.length === 0) return null;
   return (
-    <button
-      onClick={onClick}
-      className={clsx(
-        "h-9 shrink-0 rounded-full px-4 text-sm font-semibold",
-        active ? "bg-brand-600 text-brand-fg" : "border border-zinc-200 bg-white text-zinc-700",
-      )}
-    >
-      {children}
-    </button>
+    <div className="card mb-2 p-1 flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:hidden">
+      {items.map((item) => {
+        const level = inventory.levels[item.id] ?? 0;
+        const state = stockLevelState(level, item);
+        return (
+          <span
+            key={item.id}
+            className={cn(
+              "shrink-0 rounded-lg px-2 py-1 min-w-[5.5rem]",
+              state === "low" && "bg-amber-50 text-amber-800",
+              state === "empty" && "bg-red-50 text-red-700",
+            )}
+          >
+            <span className="block text-sm font-bold tabular-nums whitespace-nowrap">
+              {formatQuantity(Math.max(level, 0), findUnit(config.units, item.unit))}
+            </span>
+            <span className={cn("block text-xs truncate max-w-[8rem]", state === "ok" && "text-zinc-500")}>{item.name}</span>
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
-function ProductCard({
+function ProductRow({
   product,
   pos,
   branchId,
+  units,
   onTap,
 }: {
   product: Product;
   pos: PosState;
   branchId: string;
+  units: Unit[];
   onTap: () => void;
 }) {
-  const { config } = useShop();
-  const unit = findUnit(config.units, product.unit);
-  const needsSheet = product.soldBy === "weight" || Boolean(product.choiceGroups?.length);
-  const fits = needsSheet ? true : pos.fits(product, Math.max(1, Math.round(unit.step * unit.factor)));
-  const blocked = !fits && pos.blockOnStock;
-  const inCart = pos.cart.filter((l) => l.productId === product.id).reduce((s, l) => s + l.quantity, 0);
+  const unit = findUnit(units, product.unit);
+  const step = stepBase(unit);
+  const opensSheet = product.soldBy === "weight" || Boolean(product.choiceGroups?.length);
+  const canAdd = opensSheet || pos.fits(product, step) || !pos.blockOnStock;
+  const short = !opensSheet && !pos.fits(product, step);
+  const lines = pos.priced.filter((l) => l.productId === product.id);
+  const simpleLine = !opensSheet ? lines[0] : undefined;
+  const inCart = lines.reduce((s, l) => s + l.quantity, 0);
+
   return (
-    <button
-      onClick={onTap}
-      disabled={blocked}
-      className={clsx(
-        "card relative flex min-h-24 flex-col items-start justify-between gap-2 p-3 text-left transition active:scale-[0.98]",
-        inCart > 0 && "border-brand-600 ring-1 ring-brand-600",
-        blocked && "opacity-50",
+    <div
+      onClick={() => canAdd && onTap()}
+      aria-disabled={!canAdd || undefined}
+      className={cn(
+        "flex items-center gap-3 card p-2 pl-3 min-h-[4.5rem] transition duration-200 select-none",
+        canAdd && "cursor-pointer active:scale-[0.98]",
+        inCart > 0
+          ? "border-brand-500/40 bg-brand-500/[0.03] hover:bg-brand-500/[0.06]"
+          : canAdd && "hover:bg-zinc-50 hover:border-zinc-300",
+        !canAdd && "opacity-60",
       )}
     >
-      <span className="line-clamp-2 text-sm font-semibold">{product.name}</span>
-      <span className="flex w-full items-end justify-between gap-1">
-        <span className="text-sm text-zinc-700 tabular">
-          {formatRupiah(basePriceFor(product, branchId))}
-          {product.soldBy === "weight" && <span className="text-xs text-zinc-500">/{unit.label}</span>}
-        </span>
-        {product.soldBy === "weight" && <Scale size={14} className="text-zinc-400" />}
-      </span>
-      {!fits && (
-        <span className={clsx("pill", blocked ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-800")}>
-          Stok tidak cukup
-        </span>
+      {product.image && (
+        <img src={product.image} alt="" className="w-14 h-14 -ml-1 rounded-xl object-cover bg-zinc-100 shrink-0" />
       )}
-      {inCart > 0 && (
-        <span className="pill absolute top-2 right-2 bg-brand-600 text-brand-fg tabular">
-          {formatUnitNumber(inCart, unit)}
-        </span>
-      )}
-    </button>
-  );
-}
-
-function CartBody({ pos, bare }: { pos: PosState; bare?: boolean }) {
-  if (pos.priced.length === 0) {
-    return <p className={clsx("text-center text-sm text-zinc-500", !bare && "p-8")}>Keranjang kosong</p>;
-  }
-  return (
-    <ul className={clsx("divide-y divide-zinc-100", !bare && "flex-1 overflow-y-auto px-4")}>
-      {pos.priced.map((line) => (
-        <li key={line.key} className="flex items-start justify-between gap-3 py-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">{line.product.name}</p>
-            {line.choices?.length ? (
-              <p className="text-xs text-zinc-500">
-                {line.choices.map((c) => `${c.count > 1 ? `${c.count}× ` : ""}${c.label}`).join(", ")}
-              </p>
-            ) : null}
-            <p className="text-xs text-zinc-500 tabular">
-              {line.product.soldBy === "weight"
-                ? `${formatQuantity(line.quantity, line.unit)} × ${formatRupiah(line.price)}`
-                : formatRupiah(line.price)}
-            </p>
-            <p className="text-sm font-semibold tabular">{formatRupiah(line.total)}</p>
-          </div>
-          {line.product.soldBy === "weight" ? (
-            <button className="btn-ghost h-9 w-9 px-0" onClick={() => pos.setQuantity(line.key, 0)} aria-label="Hapus">
-              <Trash2 size={16} />
-            </button>
-          ) : (
-            <Stepper
-              label={line.product.name}
-              value={formatUnitNumber(line.quantity, line.unit)}
-              onMinus={() => pos.step(line.key, -1)}
-              onPlus={() => pos.step(line.key, 1)}
-              plusDisabled={pos.blockOnStock && !pos.fits(line.product, Math.round(line.unit.step * line.unit.factor), line.choices)}
-            />
+      <div className="flex-1 min-w-0">
+        <h3 className="font-bold text-sm md:text-base text-zinc-900 leading-[1.2] line-clamp-2">{product.name}</h3>
+        <div className="flex flex-wrap items-baseline gap-x-2 mt-0.5">
+          <span className="text-brand-700 font-bold text-sm md:text-base whitespace-nowrap tabular-nums">
+            {formatRupiah(basePriceFor(product, branchId))}
+            {product.soldBy === "weight" && <span className="font-medium text-zinc-500">/{unit.label}</span>}
+          </span>
+          {short && (
+            <span className={cn("font-medium text-sm whitespace-nowrap", pos.blockOnStock ? "text-red-700" : "text-amber-700")}>
+              Stok tidak cukup
+            </span>
           )}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function CartFooter({ pos, onCheckout }: { pos: PosState; onCheckout: () => void }) {
-  return (
-    <div className="space-y-2 border-t border-zinc-100 p-4 lg:p-4">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-zinc-600">Total</span>
-        <span className="text-xl font-bold tabular">{formatRupiah(pos.total)}</span>
+          {opensSheet && inCart > 0 && (
+            <span className="text-sm font-medium text-zinc-500 whitespace-nowrap">
+              {product.soldBy === "weight" ? formatQuantity(inCart, unit) : `${formatUnitNumber(inCart, unit)} ${unit.label}`} di
+              keranjang
+            </span>
+          )}
+        </div>
       </div>
-      <div className="flex gap-2">
-        {pos.cart.length > 0 && (
-          <button className="btn-secondary" onClick={pos.clear} aria-label="Kosongkan keranjang">
-            <Trash2 size={16} />
-          </button>
-        )}
-        <button className="btn-primary flex-1" disabled={pos.cart.length === 0} onClick={onCheckout}>
-          Lanjut bayar
+      {simpleLine ? (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Stepper
+            label={product.name}
+            value={formatUnitNumber(simpleLine.quantity, unit)}
+            atMinimum={simpleLine.quantity <= step}
+            canIncrease={!pos.blockOnStock || pos.fits(product, step)}
+            onDecrease={() => pos.step(simpleLine.key, -1)}
+            onIncrease={() => pos.step(simpleLine.key, 1)}
+            onRemove={() => pos.setQuantity(simpleLine.key, 0)}
+          />
+        </div>
+      ) : (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onTap();
+          }}
+          disabled={!canAdd}
+          aria-label={`Tambah ${product.name}`}
+          className="btn-icon btn-secondary"
+        >
+          {product.soldBy === "weight" ? <Scale size={18} /> : product.choiceGroups?.length ? <SlidersHorizontal size={18} /> : <Plus size={18} />}
         </button>
-      </div>
+      )}
     </div>
   );
 }
+
+function CartLines({ pos }: { pos: PosState }) {
+  if (pos.priced.length === 0) {
+    return (
+      <div className="h-full min-h-48 flex flex-col items-center justify-center text-zinc-400 text-center p-8">
+        <ShoppingCart size={48} className="mb-4 opacity-20" />
+        <p className="text-sm font-medium">Keranjang masih kosong</p>
+      </div>
+    );
+  }
+  return (
+    <>
+      {pos.priced.map((line) => {
+        const step = stepBase(line.unit);
+        return (
+          <div key={line.key} className="flex items-center gap-2 bg-white py-1">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm md:text-base leading-tight text-zinc-900">{line.product.name}</p>
+              {line.choices?.length ? (
+                <p className="text-xs md:text-sm text-zinc-500 leading-tight mt-0.5">
+                  {line.choices.map((c) => `${c.count > 1 ? `${c.count}× ` : ""}${c.label}`).join(", ")}
+                </p>
+              ) : null}
+              {line.product.soldBy === "weight" && (
+                <p className="text-xs md:text-sm text-zinc-500 tabular-nums mt-0.5">
+                  {formatQuantity(line.quantity, line.unit)} × {formatRupiah(line.price)}
+                </p>
+              )}
+              <p className="mt-1 text-sm md:text-base text-brand-700 font-bold tabular-nums">{formatRupiah(line.total)}</p>
+            </div>
+            {line.product.soldBy === "weight" ? (
+              <button
+                className="btn-icon btn-ghost text-red-500 hover:bg-red-50"
+                onClick={() => pos.setQuantity(line.key, 0)}
+                aria-label={`Hapus ${line.product.name}`}
+              >
+                <Trash2 size={18} />
+              </button>
+            ) : (
+              <Stepper
+                label={line.product.name}
+                value={formatUnitNumber(line.quantity, line.unit)}
+                atMinimum={line.quantity <= step}
+                canIncrease={!pos.blockOnStock || pos.fits(line.product, step, line.choices)}
+                onDecrease={() => pos.step(line.key, -1)}
+                onIncrease={() => pos.step(line.key, 1)}
+                onRemove={() => pos.setQuantity(line.key, 0)}
+              />
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 
 function WeightSheet({
   product,
   pos,
   branchId,
-  onClose,
   units,
+  onClose,
 }: {
-  product: Product;
+  product: Product | null;
   pos: PosState;
   branchId: string;
+  units: Unit[];
   onClose: () => void;
-  units: import("../domain/types").Unit[];
 }) {
-  const unit = findUnit(units, product.unit);
   const [text, setText] = useState("");
+  const shown = useLast(product);
+  useEffect(() => {
+    if (product) setText("");
+  }, [product]);
+  if (!shown) return null;
+  const unit = findUnit(units, shown.unit);
   const base = parseQuantityInput(text, unit);
-  const price = basePriceFor(product, branchId);
-  const fits = base ? pos.fits(product, base) : true;
+  const price = basePriceFor(shown, branchId);
+  const fits = base ? pos.fits(shown, base) : true;
   const blocked = !fits && pos.blockOnStock;
   const submit = () => {
     if (!base || blocked) return;
-    pos.add(product, base);
+    pos.add(shown, base);
     onClose();
   };
   return (
     <Drawer
-      open
+      open={product !== null}
       onClose={onClose}
-      title={product.name}
+      size="sm"
+      title={shown.name}
       footer={
         <button className="btn-primary w-full" disabled={!base || blocked} onClick={submit}>
-          Tambah {base ? formatRupiah(lineTotal(price, base, unit.factor)) : ""}
+          {base ? `Tambah · ${formatRupiah(lineTotal(price, base, unit.factor))}` : "Tambah"}
         </button>
       }
     >
@@ -327,9 +429,9 @@ function WeightSheet({
         className="space-y-3"
       >
         <label className="block">
-          <span className="label">Berat ({unit.label})</span>
+          <span className="field-label">Berat ({unit.label})</span>
           <input
-            className="field text-2xl font-semibold tabular"
+            className="field-input h-14 text-2xl font-bold tabular-nums"
             inputMode="decimal"
             autoFocus
             placeholder={`mis. ${formatUnitNumber(Math.round(1.5 * unit.factor), unit)}`}
@@ -337,13 +439,13 @@ function WeightSheet({
             onChange={(e) => setText(e.target.value)}
           />
         </label>
-        <p className="text-sm text-zinc-600">
+        <p className="text-sm text-zinc-500 tabular-nums">
           {formatRupiah(price)}/{unit.label}
           {base ? ` · ${formatQuantity(base, unit)}` : ""}
         </p>
-        {text && !base && <p className="text-sm text-red-600">Berat tidak valid.</p>}
+        {text && !base && <p className="field-error">Berat tidak valid.</p>}
         {!fits && (
-          <p className={clsx("text-sm", blocked ? "text-red-600" : "text-amber-700")}>Stok tidak cukup untuk berat ini.</p>
+          <p className={cn("text-sm font-medium", blocked ? "text-red-700" : "text-amber-700")}>Stok tidak cukup untuk berat ini.</p>
         )}
       </form>
     </Drawer>
@@ -356,32 +458,37 @@ function ChoiceSheet({
   branchId,
   onClose,
 }: {
-  product: Product;
+  product: Product | null;
   pos: PosState;
   branchId: string;
   onClose: () => void;
 }) {
   const [choices, setChoices] = useState<LineChoice[]>([]);
-  const problem = validateChoices(product, choices);
-  const fits = problem ? true : pos.fits(product, 1, choices);
+  const shown = useLast(product);
+  useEffect(() => {
+    if (product) setChoices([]);
+  }, [product]);
+  if (!shown) return null;
+  const problem = validateChoices(shown, choices);
+  const fits = problem ? true : pos.fits(shown, 1, choices);
   const blocked = !fits && pos.blockOnStock;
-  const price = unitPriceFor(product, branchId, choices);
+  const price = unitPriceFor(shown, branchId, choices);
   return (
     <Drawer
-      open
+      open={product !== null}
       onClose={onClose}
-      title={product.name}
+      title={shown.name}
       footer={
         <div className="space-y-2">
-          {problem && <p className="text-sm text-zinc-600">{problem}</p>}
+          {problem && <p className="text-sm font-medium text-zinc-600">{problem}</p>}
           {!problem && !fits && (
-            <p className={clsx("text-sm", blocked ? "text-red-600" : "text-amber-700")}>Stok tidak cukup untuk pilihan ini.</p>
+            <p className={cn("text-sm font-medium", blocked ? "text-red-700" : "text-amber-700")}>Stok tidak cukup untuk pilihan ini.</p>
           )}
           <button
             className="btn-primary w-full"
             disabled={Boolean(problem) || blocked}
             onClick={() => {
-              pos.add(product, undefined, choices);
+              pos.add(shown, undefined, choices);
               onClose();
             }}
           >
@@ -391,15 +498,16 @@ function ChoiceSheet({
       }
     >
       <div className="space-y-5">
-        {(product.choiceGroups ?? []).map((group) => {
+        {(shown.choiceGroups ?? []).map((group) => {
           const count = groupPickCount(choices, group.id);
+          const complete = count >= group.min && count <= group.max;
           return (
             <section key={group.id}>
-              <div className="mb-2 flex items-baseline justify-between">
-                <h3 className="font-semibold">{group.label}</h3>
-                <span className="text-xs text-zinc-500 tabular">
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <h3 className="font-bold text-base">{group.label}</h3>
+                <span className={cn("pill", complete ? "bg-emerald-100 text-emerald-800" : "bg-zinc-100 text-zinc-600")}>
                   {count}/{group.max}
-                  {group.min > 0 ? ` · wajib ${group.min === group.max ? group.min : `min ${group.min}`}` : " · opsional"}
+                  {group.min === 0 ? " · opsional" : ""}
                 </span>
               </div>
               <ul className="space-y-2">
@@ -407,16 +515,22 @@ function ChoiceSheet({
                   .filter((o) => o.active !== false)
                   .map((o) => {
                     const picked = choices.find((c) => c.groupId === group.id && c.optionId === o.id)?.count ?? 0;
-                    const single = group.max === 1 && !group.allowRepeat;
+                    const single = group.max === 1 || !group.allowRepeat;
                     return (
-                      <li key={o.id} className="flex items-center justify-between gap-2 rounded-xl border border-zinc-200 p-2 pl-3">
-                        <span className="text-sm">
+                      <li
+                        key={o.id}
+                        className={cn(
+                          "flex items-center justify-between gap-2 card p-2 pl-3 transition duration-200",
+                          picked > 0 && "border-brand-500/40 bg-brand-500/[0.03]",
+                        )}
+                      >
+                        <span className="text-sm md:text-base font-medium">
                           {o.label}
                           {o.priceDelta ? <span className="text-zinc-500"> +{formatRupiah(o.priceDelta)}</span> : null}
                         </span>
-                        {single || !group.allowRepeat ? (
+                        {single ? (
                           <button
-                            className={picked ? "btn-primary btn-sm" : "btn-secondary btn-sm"}
+                            className={picked ? "btn-primary btn-sm" : "btn-neutral btn-sm"}
                             onClick={() => setChoices((c) => togglePick(group, c, o.id, picked ? -1 : 1))}
                           >
                             {picked ? "Dipilih" : "Pilih"}
@@ -425,9 +539,10 @@ function ChoiceSheet({
                           <Stepper
                             label={o.label}
                             value={picked}
-                            onMinus={() => setChoices((c) => togglePick(group, c, o.id, -1))}
-                            onPlus={() => setChoices((c) => togglePick(group, c, o.id, 1))}
-                            plusDisabled={count >= group.max}
+                            atMinimum={false}
+                            canIncrease={count < group.max}
+                            onDecrease={() => setChoices((c) => togglePick(group, c, o.id, -1))}
+                            onIncrease={() => setChoices((c) => togglePick(group, c, o.id, 1))}
                           />
                         )}
                       </li>
@@ -442,11 +557,18 @@ function ChoiceSheet({
   );
 }
 
+/**
+ * Satu alur checkout (Haoshii): setiap pesanan mulai sama, "Bayar nanti"
+ * satu-satunya yang mengubahnya. Pesanan jadi "ambil nanti" bila dibayar
+ * nanti atau diberi waktu ambil; tidak pernah dipilih langsung.
+ */
 function CheckoutSheet({
+  open,
   pos,
   onClose,
   onDone,
 }: {
+  open: boolean;
   pos: PosState;
   onClose: () => void;
   onDone: (order: Order, change: number | null) => void;
@@ -457,8 +579,7 @@ function CheckoutSheet({
     ...(features.transfer ? [{ value: "transfer" as const, label: "Transfer" }] : []),
     ...(features.qris ? [{ value: "qris" as const, label: "QRIS" }] : []),
   ];
-  const [orderType, setOrderType] = useState<OrderType>("instant");
-  const [payNow, setPayNow] = useState(true);
+  const [payLater, setPayLater] = useState(false);
   const [method, setMethod] = useState<PaymentMethod>("cash");
   // Tidak pernah diisi otomatis: kasir mengetik uang yang benar-benar diterima.
   const [cashText, setCashText] = useState("");
@@ -467,47 +588,59 @@ function CheckoutSheet({
   const [pickup, setPickup] = useState("");
   const [shortages, setShortages] = useState<Shortage[]>([]);
   const [error, setError] = useState("");
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setCashText("");
+    setError("");
+    setShortages([]);
+  }, [open]);
 
   const cash = parseRupiahInput(cashText);
   const change = method === "cash" && cash !== null ? changeDue(cash, pos.total) : null;
-  const isPreorder = orderType === "preorder";
-  const paying = !isPreorder || payNow;
+  const isPreorder = payLater || Boolean(pickup);
 
   const submit = (override = false) => {
     setError("");
-    const req: CheckoutRequest = {
-      orderType,
-      payment: paying ? { method, ...(method === "cash" && cash !== null ? { cashReceived: cash } : {}) } : null,
+    if (payLater && !name.trim()) {
+      setError("Isi nama pelanggan untuk pesanan Bayar nanti.");
+      nameRef.current?.focus();
+      return;
+    }
+    const result = pos.checkout({
+      orderType: isPreorder ? "preorder" : "instant",
+      payment: payLater ? null : { method, ...(method === "cash" && cash !== null ? { cashReceived: cash } : {}) },
       customerName: name,
       customerContact: contact,
-      pickupTime: isPreorder && pickup ? pickup : undefined,
+      pickupTime: pickup || undefined,
       overrideStock: override,
-    };
-    const result = pos.checkout(req);
+    });
     if (result.ok) {
       toast.success(`Pesanan ${formatOrderNumberShort(result.order.orderNumber)} tersimpan`);
-      onDone(result.order, paying && method === "cash" ? changeDue(result.order.cashReceived ?? 0, result.order.totalAmount) : null);
+      onDone(result.order, result.order.cashReceived !== undefined ? changeDue(result.order.cashReceived, result.order.totalAmount) : null);
+      setName("");
+      setContact("");
+      setPickup("");
+      setPayLater(false);
       return;
     }
     setShortages(result.shortages ?? []);
     setError(result.message);
   };
 
-  const canSubmit =
-    pos.isCheckoutReady &&
-    (!paying || method !== "cash" || (cash !== null && cash >= pos.total)) &&
-    (!isPreorder || name.trim().length > 0);
+  const cashShort = !payLater && method === "cash" && (cash === null || cash < pos.total);
 
   return (
     <Drawer
-      open
+      open={open}
       onClose={onClose}
       title={`Bayar ${formatRupiah(pos.total)}`}
       footer={
         <div className="space-y-2">
           {error && (
-            <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
-              <p className="font-semibold">{error}</p>
+            <div role="alert" className="card card-danger p-3 text-sm text-red-700">
+              <p className="font-bold">{error}</p>
               {shortages.map((s) => (
                 <p key={s.stockItemId}>{s.message}</p>
               ))}
@@ -518,88 +651,89 @@ function CheckoutSheet({
               Tetap simpan walau stok kurang
             </button>
           ) : (
-            <button className="btn-primary h-12 w-full text-base" disabled={!canSubmit} onClick={() => submit()}>
-              {!pos.isCheckoutReady ? "Menunggu data cabang…" : paying ? "Bayar" : "Simpan pesanan"}
+            <button
+              className={cn("w-full h-12 text-base", payLater ? "btn-primary" : "btn-success")}
+              disabled={!pos.isCheckoutReady || cashShort}
+              onClick={() => submit()}
+            >
+              {!pos.isCheckoutReady ? "Menunggu data cabang…" : payLater ? "Simpan pesanan" : `Bayar ${formatRupiah(pos.total)}`}
             </button>
           )}
         </div>
       }
     >
       <div className="space-y-4">
-        {features.preorder && (
-          <Segmented
-            value={orderType}
-            onChange={(v) => {
-              setOrderType(v);
-              setPayNow(v === "instant");
-            }}
-            options={[
-              { value: "instant", label: "Langsung" },
-              { value: "preorder", label: "Pesanan (ambil nanti)" },
-            ]}
-          />
-        )}
-        {isPreorder && (
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" className="h-5 w-5" checked={!payNow} onChange={(e) => setPayNow(!e.target.checked)} />
-            Bayar nanti (saat diambil)
-          </label>
-        )}
+        {features.preorder && <CheckRow checked={payLater} onChange={setPayLater} label="Bayar nanti (saat diambil)" />}
 
-        {paying && (
+        {!payLater && (
           <div className="space-y-3">
-            {methods.length > 1 && <Segmented value={method} onChange={setMethod} options={methods} />}
+            {methods.length > 1 && <SegmentedControl className="w-full" value={method} onChange={setMethod} options={methods} />}
             {method === "cash" && (
               <div className="space-y-2">
                 <label className="block">
-                  <span className="label">Uang diterima</span>
+                  <span className="field-label">Uang diterima</span>
                   <input
-                    className="field text-xl font-semibold tabular"
+                    className="field-input h-14 text-2xl font-bold tabular-nums"
                     inputMode="numeric"
                     placeholder="0"
                     value={cash !== null ? formatAmount(cash) : cashText}
                     onChange={(e) => setCashText(e.target.value)}
                   />
                 </label>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {cashSuggestions(pos.total).map((v) => (
-                    <button key={v} className="btn-secondary btn-sm tabular" onClick={() => setCashText(String(v))}>
+                    <button key={v} className="btn-neutral tabular-nums" onClick={() => setCashText(String(v))}>
                       {v === pos.total ? "Uang pas" : formatRupiah(v)}
                     </button>
                   ))}
                 </div>
                 {change !== null && (
-                  <p className={clsx("text-lg font-semibold tabular", change < 0 ? "text-red-600" : "text-brand-700")}>
-                    {change < 0 ? `Kurang ${formatRupiah(-change)}` : `Kembalian ${formatRupiah(change)}`}
-                  </p>
+                  <div
+                    className={cn(
+                      "flex items-center justify-between rounded-xl px-4 py-3 font-bold",
+                      change < 0 ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800",
+                    )}
+                  >
+                    <span>{change < 0 ? "Kurang" : "Kembalian"}</span>
+                    <span className="text-xl tabular-nums">{formatRupiah(Math.abs(change))}</span>
+                  </div>
                 )}
               </div>
             )}
           </div>
         )}
 
-        {(features.customers || isPreorder) && (
-          <div className="space-y-3">
-            <label className="block">
-              <span className="label">Nama pelanggan{isPreorder ? "" : " (opsional)"}</span>
-              <input className="field" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />
-            </label>
+        {(features.customers || payLater) && (
+          <div className="space-y-2">
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+              <input
+                ref={nameRef}
+                className="field-input pl-10"
+                value={name}
+                maxLength={100}
+                autoCapitalize="words"
+                onChange={(e) => setName(e.target.value)}
+                placeholder={payLater ? "Nama pelanggan" : "Nama untuk dipanggil"}
+                autoComplete="off"
+              />
+            </div>
             {features.customers && (
-              <label className="block">
-                <span className="label">No. HP (opsional)</span>
-                <input
-                  className="field"
-                  inputMode="tel"
-                  value={contact}
-                  onChange={(e) => setContact(e.target.value)}
-                  autoComplete="off"
-                />
-              </label>
+              <input
+                className="field-input"
+                type="tel"
+                inputMode="tel"
+                maxLength={50}
+                value={contact}
+                onChange={(e) => setContact(e.target.value)}
+                placeholder="No. HP"
+                autoComplete="off"
+              />
             )}
-            {isPreorder && (
+            {features.preorder && (
               <label className="block">
-                <span className="label">Waktu ambil (opsional)</span>
-                <input className="field" type="datetime-local" value={pickup} onChange={(e) => setPickup(e.target.value)} />
+                <span className="field-label">Waktu ambil {payLater ? "" : "(bila diambil nanti)"}</span>
+                <input className="field-input" type="datetime-local" value={pickup} onChange={(e) => setPickup(e.target.value)} />
               </label>
             )}
           </div>
@@ -607,4 +741,41 @@ function CheckoutSheet({
       </div>
     </Drawer>
   );
+}
+
+function DoneDialog({ done, onClose }: { done: { order: Order; change: number | null } | null; onClose: () => void }) {
+  const shown = useLast(done);
+  return (
+    <Drawer open={done !== null} onClose={onClose} variant="dialog" size="xs" bodyClassName="p-6">
+      {shown && (
+        <div className="space-y-4 text-center">
+          <CircleCheck size={48} className="mx-auto text-emerald-600" />
+          <div>
+            <p className="text-sm text-zinc-500">Nomor pesanan</p>
+            <p className="text-5xl font-bold tabular-nums tracking-tight">{formatOrderNumberShort(shown.order.orderNumber)}</p>
+          </div>
+          <p className="text-lg font-bold tabular-nums">{formatRupiah(shown.order.totalAmount)}</p>
+          {shown.change !== null && (
+            <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 font-bold text-emerald-800">
+              <span>Kembalian</span>
+              <span className="text-2xl tabular-nums">{formatRupiah(shown.change)}</span>
+            </div>
+          )}
+          {shown.order.paymentStatus === "unpaid" && (
+            <p className="card card-warn p-3 text-sm text-amber-800">Belum dibayar. Terima pembayaran di tab Pesanan.</p>
+          )}
+          <button className="btn-primary w-full" onClick={onClose}>
+            Pesanan baru
+          </button>
+        </div>
+      )}
+    </Drawer>
+  );
+}
+
+/** Nilai terakhir yang bukan null, supaya isi sheet tidak hilang saat animasi keluar. */
+function useLast<T>(value: T | null): T | null {
+  const ref = useRef<T | null>(value);
+  if (value !== null) ref.current = value;
+  return ref.current;
 }

@@ -1,7 +1,9 @@
-import { ChevronRight, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Confirm, Drawer, Field, Segmented, Toggle } from "../components/ui";
+import { Drawer } from "../components/Drawer";
+import { SelectMenu } from "../components/SelectMenu";
+import { Confirm, Field, RowChevron, SegmentedControl, Toggle } from "../components/ui";
 import type { ChoiceGroup, Consume, Product, StockItem, StockMode, Unit } from "../domain/types";
 import { deleteProduct, makeId, saveProduct } from "../features/catalog/catalogActions";
 import { formatRupiah, parseRupiahInput } from "../features/pricing/money";
@@ -40,19 +42,19 @@ export function ProductsSection() {
       {products.length === 0 ? (
         <p className="card p-6 text-center text-sm text-zinc-500">Belum ada produk.</p>
       ) : (
-        <ul className="card divide-y divide-zinc-100">
+        <ul className="card divide-y divide-zinc-100 overflow-hidden">
           {products.map((p) => (
             <li key={p.id}>
               <button
-                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-zinc-50"
+                className="row-tap flex items-center gap-3"
                 onClick={() => setEditing({ product: p, isNew: false })}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium">
+                  <p className="font-bold text-zinc-900">
                     {p.name}
                     {!p.active && <span className="pill ml-2 bg-zinc-100 text-zinc-500">Nonaktif</span>}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-sm text-zinc-500">
                     {[
                       p.sku,
                       categoryName(p.categoryId),
@@ -67,7 +69,7 @@ export function ProductsSection() {
                       .join(" · ")}
                   </p>
                 </div>
-                <ChevronRight size={16} className="text-zinc-400" />
+                <RowChevron />
               </button>
             </li>
           ))}
@@ -136,20 +138,16 @@ function ConsumeRows({
         const unit = findUnit(config.units, item?.unit ?? "");
         return (
           <div key={i} className="flex items-center gap-2">
-            <select
-              className="field flex-1"
+            <SelectMenu
+              className="flex-1 min-w-0"
+              label="Item stok"
+              placeholder="Pilih item stok"
               value={row.stockItemId}
-              onChange={(e) => onChange(rows.map((r, j) => (j === i ? { ...r, stockItemId: e.target.value } : r)))}
-            >
-              <option value="">Pilih item stok</option>
-              {choosable.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => onChange(rows.map((r, j) => (j === i ? { ...r, stockItemId: v } : r)))}
+              options={choosable.map((s) => ({ value: s.id, label: s.name, hint: findUnit(config.units, s.unit).label }))}
+            />
             <input
-              className="field w-20 text-right tabular"
+              className="field-input w-20 text-right tabular-nums"
               inputMode="decimal"
               value={row.qtyText}
               onChange={(e) => onChange(rows.map((r, j) => (j === i ? { ...r, qtyText: e.target.value } : r)))}
@@ -164,8 +162,8 @@ function ConsumeRows({
       <button className="btn-ghost btn-sm" onClick={() => onChange([...rows, { stockItemId: "", qtyText: "1" }])}>
         <Plus size={14} /> {addLabel}
       </button>
-      <p className="hint">Jumlah yang terpotong per {perLabel}.</p>
-      {choosable.length === 0 && <p className="hint text-amber-700">Belum ada item stok. Buat dulu di Pengaturan → Item stok.</p>}
+      <p className="field-hint">Jumlah yang terpotong per {perLabel}.</p>
+      {choosable.length === 0 && <p className="field-hint text-amber-700">Belum ada item stok. Buat dulu di Pengaturan → Item stok.</p>}
     </div>
   );
 }
@@ -281,15 +279,15 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
   return (
     <Drawer
       open
-      wide
+      size="lg"
       onClose={onClose}
       title={isNew ? "Produk baru" : draft.name || "Produk"}
       footer={
         <div className="space-y-2">
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p role="alert" className="card card-danger p-3 text-sm font-medium text-red-700">{error}</p>}
           <div className="flex gap-2">
             {!isNew && (
-              <button className="btn-ghost text-red-600" onClick={() => setConfirmDelete(true)}>
+              <button className="btn-danger-quiet" onClick={() => setConfirmDelete(true)}>
                 Hapus
               </button>
             )}
@@ -303,35 +301,31 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
       <div className="space-y-6">
         <section className="grid gap-3 sm:grid-cols-2">
           <Field label="Nama">
-            <input className="field" autoFocus={isNew} value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="Ayam Segar 40K" />
+            <input className="field-input" autoFocus={isNew} value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="Ayam Segar 40K" />
           </Field>
           <Field label="SKU (opsional)">
-            <input className="field" value={draft.sku ?? ""} onChange={(e) => set("sku", e.target.value)} />
+            <input className="field-input" value={draft.sku ?? ""} onChange={(e) => set("sku", e.target.value)} />
           </Field>
-          <Field label="Kategori">
-            <select className="field" value={draft.categoryId ?? ""} onChange={(e) => set("categoryId", e.target.value || undefined)}>
-              <option value="">Tanpa kategori</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+          <Field group label="Kategori">
+            <SelectMenu
+              label="Kategori"
+              value={draft.categoryId ?? ""}
+              onChange={(v) => set("categoryId", v || undefined)}
+              options={[{ value: "", label: "Tanpa kategori" }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+            />
           </Field>
-          <Field label="Satuan jual">
-            <select className="field" value={draft.unit} onChange={(e) => set("unit", e.target.value)}>
-              {config.units
-                .filter((u) => !u.hidden || u.code === draft.unit)
-                .map((u) => (
-                  <option key={u.code} value={u.code}>
-                    {u.label}
-                  </option>
-                ))}
-            </select>
+          <Field group label="Satuan jual">
+            <SelectMenu
+              label="Satuan jual"
+              value={draft.unit}
+              onChange={(v) => set("unit", v)}
+              options={config.units.filter((u) => !u.hidden || u.code === draft.unit).map((u) => ({ value: u.code, label: u.label }))}
+            />
           </Field>
           {(features.weightSales || draft.soldBy === "weight") && (
-            <Field label="Dijual" hint={draft.soldBy === "weight" ? "Kasir mengetik berat; harga di bawah per satuan." : undefined}>
-              <Segmented
+            <Field group label="Dijual" hint={draft.soldBy === "weight" ? "Kasir mengetik berat; harga di bawah per satuan." : undefined}>
+              <SegmentedControl
+                className="w-full"
                 value={draft.soldBy}
                 onChange={(v) => set("soldBy", v)}
                 options={[
@@ -342,13 +336,14 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
             </Field>
           )}
           <Field label={`Harga per ${unit.label}`}>
-            <input className="field tabular" inputMode="numeric" value={priceText} onChange={(e) => setPriceText(e.target.value)} placeholder="40000" />
+            <input className="field-input tabular-nums" inputMode="numeric" value={priceText} onChange={(e) => setPriceText(e.target.value)} placeholder="40000" />
           </Field>
         </section>
 
         <section className="space-y-3">
           <h3 className="section-title">Cara hitung stok</h3>
-          <Segmented
+          <SegmentedControl
+                className="w-full"
             value={draft.stockMode}
             onChange={(v) => set("stockMode", v)}
             options={[
@@ -379,7 +374,7 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
                 <Plus size={14} /> Grup pilihan
               </button>
             </div>
-            <p className="hint -mt-2">
+            <p className="field-hint -mt-2">
               Untuk paket yang isinya dipilih saat jual (mis. "Pilih 3 ayam"), varian rasa, atau level pedas.
             </p>
             {groups.map((g, gi) => (
@@ -398,20 +393,16 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
             <h3 className="section-title">Bonus gratis</h3>
             {(draft.freeItems ?? []).map((f, i) => (
               <div key={i} className="flex items-center gap-2">
-                <select
-                  className="field flex-1"
+                <SelectMenu
+                  className="flex-1 min-w-0"
+                  label="Produk bonus"
+                  placeholder="Pilih produk"
                   value={f.productId}
-                  onChange={(e) => set("freeItems", draft.freeItems!.map((x, j) => (j === i ? { ...x, productId: e.target.value } : x)))}
-                >
-                  <option value="">Pilih produk</option>
-                  {freeCandidates.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => set("freeItems", draft.freeItems!.map((x, j) => (j === i ? { ...x, productId: v } : x)))}
+                  options={freeCandidates.map((p) => ({ value: p.id, label: p.name }))}
+                />
                 <input
-                  className="field w-20 text-right"
+                  className="field-input w-20 text-right"
                   type="number"
                   min={1}
                   value={f.qty}
@@ -425,7 +416,7 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
             <button className="btn-ghost btn-sm" onClick={() => set("freeItems", [...(draft.freeItems ?? []), { productId: "", qty: 1 }])}>
               <Plus size={14} /> Tambah bonus
             </button>
-            <p className="hint">Per 1 {unit.label} terjual. Stok bonus ikut terpotong dan tercatat di pesanan.</p>
+            <p className="field-hint">Per 1 {unit.label} terjual. Stok bonus ikut terpotong dan tercatat di pesanan.</p>
           </section>
         )}
 
@@ -451,7 +442,7 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
                     {b.name}
                   </label>
                   <input
-                    className="field w-36 text-right tabular"
+                    className="field-input w-36 text-right tabular-nums"
                     inputMode="numeric"
                     placeholder={priceText ? `${formatRupiah(parseRupiahInput(priceText) ?? 0)}` : "Harga"}
                     value={branchPrices[b.id] ?? ""}
@@ -461,13 +452,13 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
                 </div>
               );
             })}
-            <p className="hint">Kosongkan harga cabang untuk memakai harga dasar.</p>
+            <p className="field-hint">Kosongkan harga cabang untuk memakai harga dasar.</p>
           </section>
         )}
 
         <section className="grid gap-3 sm:grid-cols-2">
           <Field label="Urutan di kasir">
-            <input className="field" type="number" value={draft.order} onChange={(e) => set("order", Number(e.target.value) || 0)} />
+            <input className="field-input" type="number" value={draft.order} onChange={(e) => set("order", Number(e.target.value) || 0)} />
           </Field>
           <div className="pt-5">
             <Toggle label="Aktif (tampil di kasir)" checked={draft.active} onChange={(v) => set("active", v)} />
@@ -475,7 +466,7 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
         </section>
 
         {!isNew && (
-          <p className="hint">
+          <p className="field-hint">
             Mengubah harga, mode stok, atau isi paket berlaku untuk penjualan berikutnya. Pesanan lama tidak berubah.
           </p>
         )}
@@ -487,7 +478,7 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
         title="Hapus produk?"
         message="Pesanan lama tetap utuh (nama dan harga tersimpan di pesanan). Untuk menyembunyikan sementara, nonaktifkan saja."
         confirmLabel="Hapus produk"
-        danger
+        tone="danger"
         onConfirm={() => {
           deleteProduct(initial);
           onClose();
@@ -526,25 +517,25 @@ function GroupEditor({
   };
 
   return (
-    <div className="space-y-3 rounded-2xl border border-zinc-200 p-3">
+    <div className="space-y-3 card p-3">
       <div className="flex items-center gap-2">
-        <input className="field flex-1" placeholder="Nama grup, mis. Pilih 3 ayam" value={group.label} onChange={(e) => onChange({ ...group, label: e.target.value })} />
+        <input className="field-input flex-1" placeholder="Nama grup, mis. Pilih 3 ayam" value={group.label} onChange={(e) => onChange({ ...group, label: e.target.value })} />
         <button className="btn-ghost h-9 w-9 px-0" onClick={onRemove} aria-label="Hapus grup">
           <Trash2 size={16} />
         </button>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <Field label="Minimal">
-          <input className="field" type="number" min={0} value={group.min} onChange={(e) => onChange({ ...group, min: Math.max(0, Number(e.target.value) || 0) })} />
+          <input className="field-input" type="number" min={0} value={group.min} onChange={(e) => onChange({ ...group, min: Math.max(0, Number(e.target.value) || 0) })} />
         </Field>
         <Field label="Maksimal">
-          <input className="field" type="number" min={1} value={group.max} onChange={(e) => onChange({ ...group, max: Math.max(1, Number(e.target.value) || 1) })} />
+          <input className="field-input" type="number" min={1} value={group.max} onChange={(e) => onChange({ ...group, max: Math.max(1, Number(e.target.value) || 1) })} />
         </Field>
         <div className="col-span-2 pt-5 sm:col-span-1">
           <Toggle label="Boleh berulang" checked={group.allowRepeat} onChange={(v) => onChange({ ...group, allowRepeat: v })} />
         </div>
       </div>
-      <p className="hint">
+      <p className="field-hint">
         {group.min === group.max ? `Kasir memilih tepat ${group.min}` : `Kasir memilih ${group.min}–${group.max}`}
         {group.allowRepeat ? ", opsi yang sama boleh dipilih lebih dari sekali." : "."}
       </p>
@@ -552,9 +543,9 @@ function GroupEditor({
         {group.options.map((o, i) => (
           <li key={o.id} className="space-y-2 rounded-xl bg-zinc-50 p-3">
             <div className="flex items-center gap-2">
-              <input className="field flex-1" placeholder="Nama opsi, mis. Ukuran 40K" value={o.label} onChange={(e) => setOption(i, { label: e.target.value })} />
+              <input className="field-input flex-1" placeholder="Nama opsi, mis. Ukuran 40K" value={o.label} onChange={(e) => setOption(i, { label: e.target.value })} />
               <input
-                className="field w-28 text-right tabular"
+                className="field-input w-28 text-right tabular-nums"
                 inputMode="numeric"
                 placeholder="+Rp0"
                 value={o.priceText}

@@ -63,7 +63,7 @@ export const buildOrder = (input: CheckoutInput): CheckoutResult => {
   const name = input.customerName?.trim();
   const contact = input.customerContact?.trim();
   if (input.orderType === "preorder" && !name) {
-    return { ok: false, message: "Isi nama pelanggan untuk pesanan Bayar nanti." };
+    return { ok: false, message: "Isi nama pelanggan untuk pesanan yang diambil nanti." };
   }
   if (name) order.customerName = name;
   if (contact) order.customerContact = contact;

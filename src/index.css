@@ -1,25 +1,24 @@
 @import "tailwindcss";
 
 /*
- * Design system basis (lihat docs/DESIGN.md).
- *
- * Warna brand adalah TANGGA, bukan satu hex, dan nilainya datang saat runtime
- * dari config/shop.brandColor (ShopProvider menulis --brand-* ke :root).
- * `@theme inline` membuat bg-brand-600 dll. merujuk variabel itu, jadi
- * mengganti warna toko tidak butuh build ulang. Nilai di :root di bawah hanya
- * dipakai sebelum config terbaca.
+ * Design system basis, diambil dari Haoshii Dimsum (docs/DESIGN.md). Satu hal
+ * yang berbeda: WARNA BRAND DATANG DARI DATA. ShopProvider menulis --brand-*
+ * (tangga 50–900 yang dibuat dari config/shop.brandColor, warna pilihan di
+ * 500) dan --brand-fg ke :root, dan `@theme inline` di bawah membuat
+ * bg-brand-500 dll. merujuk variabel itu. Mengganti warna toko tidak butuh
+ * build ulang. Nilai di :root hanya dipakai sebelum config terbaca.
  */
 :root {
   --brand-50: #e7f2f1;
   --brand-100: #d0e6e4;
   --brand-200: #a2cdc9;
-  --brand-300: #87bbb7;
-  --brand-400: #4b9892;
-  --brand-500: #2a8780;
-  --brand-600: #0f766e;
-  --brand-700: #0d645e;
-  --brand-800: #0b534d;
-  --brand-900: #08413c;
+  --brand-300: #6faeaa;
+  --brand-400: #3c8f89;
+  --brand-500: #0f766e;
+  --brand-600: #0d645e;
+  --brand-700: #0b534d;
+  --brand-800: #08413c;
+  --brand-900: #06302c;
   --brand-fg: #ffffff;
 }
 
@@ -34,35 +33,70 @@
   --color-brand-700: var(--brand-700);
   --color-brand-800: var(--brand-800);
   --color-brand-900: var(--brand-900);
+  /* Teks di atas brand-500: putih, atau hampir hitam bila warna toko terang
+     (kuning, hijau muda). Haoshii memakai text-white karena oranyenya tetap. */
   --color-brand-fg: var(--brand-fg);
+}
+
+@theme {
+  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+
+  /* Setiap langkah teks = Tailwind + 1px (Haoshii, 2026-11-22): x-height
+     Nunito lebih kecil dari Inter. Tinggi baris dipatok ke nilai piksel
+     Tailwind semula, jadi hanya glyph yang membesar, bukan baris. */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: calc(1 / 0.8125);
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: calc(1.25 / 0.9375);
+  --text-base: 1.0625rem;
+  --text-base--line-height: calc(1.5 / 1.0625);
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: calc(1.75 / 1.1875);
+  --text-xl: 1.3125rem;
+  --text-xl--line-height: calc(1.75 / 1.3125);
+  --text-2xl: 1.5625rem;
+  --text-2xl--line-height: calc(2 / 1.5625);
 }
 
 @layer base {
   body {
     @apply bg-zinc-50 text-zinc-900 antialiased;
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: var(--font-sans);
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Preflight v4 membuat tombol `cursor: default`. */
   button,
   [role="button"],
+  summary,
   select,
   label:has(input[type="checkbox"]),
-  input[type="checkbox"] {
+  label:has(input[type="radio"]),
+  input[type="checkbox"],
+  input[type="radio"] {
     cursor: pointer;
   }
+
   button:disabled,
+  select:disabled,
   input:disabled,
-  select:disabled {
+  [aria-disabled="true"] {
     cursor: not-allowed;
-  }
-  :focus-visible {
-    outline: 2px solid var(--brand-600);
-    outline-offset: 2px;
   }
 }
 
-@utility tabular {
-  font-variant-numeric: tabular-nums;
+/* Satu lebar halaman untuk setiap tab. */
+@utility page-rail {
+  max-width: var(--breakpoint-lg);
+  margin-inline: auto;
+  width: 100%;
+}
+
+/* Shell desktop: kartu nav 224px, jarak 16px, satu page-rail, di tengah. */
+@utility app-shell {
+  max-width: calc(var(--breakpoint-lg) + 14rem + 1rem);
+  margin-inline: auto;
+  width: 100%;
 }
 
 @utility pb-safe {
@@ -73,46 +107,209 @@
   padding-top: env(safe-area-inset-top, 0px);
 }
 
-/* Satu tinggi kontrol (h-11) dan satu radius (rounded-xl). */
+/* 1rem DITAMBAH notch/status bar, untuk scroller halaman di PWA layar penuh. */
+@utility pt-safe-4 {
+  padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+}
+
+@utility h-nav-safe {
+  height: calc(4rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Bar keranjang mengambang tepat di atas nav bawah 4rem. */
+@utility bottom-above-nav {
+  bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Padding footer 0.75rem DITAMBAH home indicator (pb-safe menggantinya). */
+@utility pb-safe-3 {
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+@utility pb-nav-safe {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Ruang untuk bar keranjang (3.5rem + margin 0.75rem) saat tampil. */
+@utility pb-cart-bar {
+  padding-bottom: 5rem;
+}
+
+/*
+ * Lapisan komponen. Class, bukan konvensi: fokus, disabled, dan efek tekan
+ * sudah di dalamnya dan tidak bisa terlupa. `focus-visible:`, bukan `focus:`
+ * (yang menyala juga saat diklik mouse).
+ */
 @layer components {
-  .btn,
   .btn-primary,
   .btn-secondary,
+  .btn-success,
+  .btn-neutral,
   .btn-ghost,
-  .btn-danger {
-    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors disabled:opacity-50;
+  .btn-danger,
+  .btn-danger-quiet,
+  .btn-icon {
+    @apply inline-flex items-center justify-center gap-2 h-11 rounded-xl
+           text-sm font-bold whitespace-nowrap
+           transition duration-200 active:scale-[0.98]
+           focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-brand-500/40 focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+           [&>svg]:shrink-0;
   }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-success,
+  .btn-neutral,
+  .btn-ghost,
+  .btn-danger,
+  .btn-danger-quiet {
+    @apply px-4;
+  }
+
+  /* Persegi; ditulis bersama varian. Ikon saja butuh aria-label. */
+  .btn-icon {
+    @apply w-11 px-0 shrink-0;
+  }
+
+  /* Satu .btn-primary per layar: aksi utama. */
   .btn-primary {
-    @apply bg-brand-600 text-brand-fg hover:bg-brand-700;
+    @apply bg-brand-500 text-brand-fg hover:bg-brand-600;
   }
+
   .btn-secondary {
-    @apply border border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50;
+    @apply bg-brand-50 text-brand-700 hover:bg-brand-100;
   }
+
+  /* Aksi netral di samping aksi utama: abu-abu terisi. Tombol terisi;
+     kartu putih bergaris. */
+  .btn-neutral {
+    @apply bg-zinc-100 text-zinc-700 hover:bg-zinc-200;
+  }
+
   .btn-ghost {
-    @apply text-zinc-700 hover:bg-zinc-100;
+    @apply text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900;
   }
+
+  /* Emerald = "selesai/lunas". Tombol yang menutup transaksi uang. */
+  .btn-success {
+    @apply bg-emerald-600 text-white hover:bg-emerald-700;
+  }
+
+  /* Merah solid bila menghapus ADALAH aksinya; versi tenang bila berdiri di
+     samping aksi biasa. */
   .btn-danger {
     @apply bg-red-600 text-white hover:bg-red-700;
   }
+
+  .btn-danger-quiet {
+    @apply bg-red-50 text-red-700 hover:bg-red-100;
+  }
+
   .btn-sm {
-    @apply h-9 rounded-lg px-3 text-sm;
+    @apply h-9 px-3 rounded-lg;
   }
-  .field {
-    @apply h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 placeholder:text-zinc-400 focus:border-brand-600 focus:outline-none disabled:bg-zinc-100;
-  }
-  .label {
-    @apply mb-1 block text-sm font-medium text-zinc-700;
-  }
-  .hint {
-    @apply mt-1 text-xs text-zinc-500;
-  }
+
   .card {
-    @apply rounded-2xl border border-zinc-200 bg-white;
+    @apply bg-white rounded-xl border border-zinc-200;
   }
+
+  .card-pad {
+    @apply p-4;
+  }
+
+  .card-pad-tight {
+    @apply p-3 lg:p-4;
+  }
+
+  .card-tint {
+    @apply bg-brand-50 border-brand-100;
+  }
+
+  .card-warn {
+    @apply bg-amber-50 border-amber-100;
+  }
+
+  .card-danger {
+    @apply bg-red-50 border-red-100;
+  }
+
+  .table-head {
+    @apply bg-zinc-50 px-3 py-2 text-xs font-bold uppercase tracking-wider
+           text-zinc-500 border-b border-zinc-200 text-left;
+  }
+
+  .table-cell {
+    @apply px-3 py-3 border-b border-zinc-100;
+  }
+
+  .table-cell-num {
+    @apply px-3 py-3 border-b border-zinc-100 text-right tabular-nums;
+  }
+
+  .table-row {
+    @apply transition-colors hover:bg-zinc-50 cursor-pointer;
+  }
+
+  /* Baris di HP: min-h, bukan h, supaya dua baris teks tumbuh. */
+  .row-tap {
+    @apply w-full min-h-11 px-4 py-3 text-left transition-colors active:bg-zinc-50 hover:bg-zinc-50;
+  }
+
   .pill {
-    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold;
+    @apply inline-flex items-center gap-1 h-6 px-2 rounded-xl text-xs font-bold
+           whitespace-nowrap;
   }
+
+  /* 16px+, atau Safari iOS memperbesar halaman saat fokus. */
+  .field-input {
+    @apply w-full h-11 px-3 text-base bg-white rounded-xl border border-zinc-200
+           outline-none transition placeholder:text-zinc-400
+           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+           disabled:bg-zinc-50 disabled:text-zinc-500;
+  }
+
+  textarea.field-input {
+    @apply h-auto min-h-20 py-2;
+  }
+
+  .field-select {
+    @apply h-11 pl-3 pr-8 text-base font-bold bg-white text-zinc-700
+           rounded-xl border border-zinc-200 appearance-none cursor-pointer
+           outline-none transition text-ellipsis
+           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.625rem center;
+    background-size: 1rem 1rem;
+  }
+
+  .field-label {
+    @apply block text-sm font-medium text-zinc-500 mb-1;
+  }
+
+  .field-hint {
+    @apply mt-1 text-xs text-zinc-400;
+  }
+
+  .field-error {
+    @apply mt-1 text-xs text-red-600;
+  }
+
   .section-title {
-    @apply text-base font-semibold text-zinc-900;
+    @apply text-base font-bold text-zinc-900;
+  }
+}
+
+/* Toast (sonner) di ukuran text-sm aplikasi dan font aplikasi. */
+[data-sonner-toaster] [data-sonner-toast] {
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+}
+@media (min-width: 64rem) {
+  [data-sonner-toaster] {
+    --width: 480px !important;
   }
 }

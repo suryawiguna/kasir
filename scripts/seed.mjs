@@ -30,6 +30,10 @@ const seed = JSON.parse(readFileSync(seedPath, "utf8"));
 const projectId = client.firebase.projectId;
 if (emulator) {
   process.env.FIRESTORE_EMULATOR_HOST = EMULATOR.firestore;
+  // Tanpa ini firebase-admin mencari kredensial di metadata server Google
+  // Cloud, gagal (ETIMEDOUT) dan mencetak MetadataLookupWarning. Emulator
+  // tidak butuh kredensial.
+  process.env.METADATA_SERVER_DETECTION = "none";
   initializeApp({ projectId });
 } else {
   const { key } = loadServiceAccount(client, dir);
