@@ -3,6 +3,7 @@ import { useState } from "react";
 import { CLIENT } from "../client";
 import { USE_EMULATOR } from "../data/firebase";
 import { useAuth } from "../features/auth/AuthContext";
+import { readBrand } from "../features/shop/brandCache";
 
 const LAST_USERNAME = `${CLIENT.slug}:lastUsername`;
 
@@ -14,6 +15,9 @@ const LOGIN_ERRORS: Record<string, string> = {
 
 export function LoginPage() {
   const { login } = useAuth();
+  // Nama dan logo dari Pengaturan → Toko, yang terakhir terbaca di perangkat ini.
+  const [brand] = useState(() => readBrand());
+  const name = brand?.name ?? CLIENT.name;
   const [username, setUsername] = useState(() => localStorage.getItem(LAST_USERNAME) ?? "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -39,11 +43,15 @@ export function LoginPage() {
     <div className="flex min-h-[100dvh] items-center justify-center bg-zinc-50 p-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-500 text-2xl font-bold text-brand-fg">
-            {CLIENT.name.slice(0, 1).toUpperCase()}
-          </div>
+          {brand?.logoUrl ? (
+            <img src={brand.logoUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-500 text-2xl font-bold text-brand-fg">
+              {name.slice(0, 1).toUpperCase()}
+            </div>
+          )}
           <div>
-            <h1 className="text-2xl font-bold text-zinc-900">{CLIENT.name}</h1>
+            <h1 className="text-2xl font-bold text-zinc-900">{name}</h1>
             <p className="text-sm text-zinc-500">Masuk ke aplikasi kasir</p>
           </div>
         </div>

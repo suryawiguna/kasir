@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../lib/cn";
 import { useBackClose } from "../features/ui/useBackClose";
@@ -15,6 +15,10 @@ import { TRANSITION_MS, useOverlayTransition } from "../features/ui/useOverlayTr
  * transform, atau overflow induk yang menggeser posisi fixed-nya. Header
  * sheet di HP bisa digeser ke bawah untuk menutup; body menggulir. Back dan
  * Escape ditangani di sini (jangan panggil useBackClose lagi).
+ *
+ * Fokus awal: tandai field dengan `data-autofocus`, bukan `autoFocus`. Panel
+ * masih `inert` saat dipasang (menunggu transisi), sehingga `autoFocus` React
+ * diam-diam gagal; Drawer memfokuskannya begitu panel terlihat.
  */
 export const CLOSE_ICON_SIZE = 28;
 export { TRANSITION_MS };
@@ -62,6 +66,11 @@ export function Drawer({
   const { host, visible } = useOverlayTransition(open);
   const { dragY, handleProps } = useDragToClose(onClose, isSheet && visible);
   const isDragging = dragY !== null;
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (visible) panelRef.current?.querySelector<HTMLElement>("[data-autofocus]")?.focus({ preventScroll: true });
+  }, [visible]);
 
   if (!host) return null;
 
@@ -88,6 +97,7 @@ export function Drawer({
         style={isDragging ? { transitionDuration: "0ms", opacity: Math.max(0, 1 - dragY / 400) } : DURATION}
       />
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         style={isDragging ? { transitionDuration: "0ms", translate: `0 ${dragY}px` } : DURATION}

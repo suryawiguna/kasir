@@ -141,7 +141,7 @@ function FirstBranchForm({ by }: { by: string }) {
   return (
     <div className="space-y-3">
       <Field label="Nama cabang">
-        <input className="field-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Lapak Tikala" />
+        <input className="field-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Cabang A" />
       </Field>
       <Field label="Kode cabang" hint="2–6 huruf besar/angka, masuk ke nomor pesanan. Tidak bisa diganti.">
         <input
@@ -149,7 +149,7 @@ function FirstBranchForm({ by }: { by: string }) {
           value={code}
           maxLength={6}
           onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
-          placeholder="TKL"
+          placeholder="CBA"
         />
       </Field>
       <button

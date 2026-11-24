@@ -27,6 +27,27 @@ export const cartLineKey = (productId: string, choices?: readonly LineChoice[]):
 export const isSoldAtBranch = (product: Pick<Product, "branchIds" | "active">, branchId: string): boolean =>
   product.active && (!product.branchIds || product.branchIds.length === 0 || product.branchIds.includes(branchId));
 
+export interface TillFilter {
+  branchId: string;
+  /** Id kategori yang dimatikan "Tampil di kasir". */
+  hiddenCategoryIds: ReadonlySet<string>;
+  weightSales: boolean;
+  bundles: boolean;
+}
+
+/**
+ * Produk yang tampil di kasir: aktif, dijual di cabang ini, kategorinya tidak
+ * disembunyikan, dan fiturnya (jual per berat, paket) menyala.
+ */
+export const sellableProducts = <P extends Product>(products: readonly P[], f: TillFilter): P[] =>
+  products.filter(
+    (p) =>
+      isSoldAtBranch(p, f.branchId) &&
+      !(p.categoryId && f.hiddenCategoryIds.has(p.categoryId)) &&
+      (f.weightSales || p.soldBy !== "weight") &&
+      (f.bundles || !p.choiceGroups?.length),
+  );
+
 /**
  * Tambah ke keranjang. Baris dengan produk dan pilihan yang sama digabung,
  * kecuali produk per berat: setiap timbangan jadi baris sendiri supaya struk

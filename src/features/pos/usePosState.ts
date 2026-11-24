@@ -15,7 +15,7 @@ import { setTillBusy } from "../pwa/appUpdate";
 import { useShop } from "../shop/ShopContext";
 import { consumptionForLine, findShortages, fitsInStock, totalConsumed, type Shortage } from "../stock/consumption";
 import { findUnit, stepBase } from "../units/units";
-import { addToCart, cartProblem, isSoldAtBranch, priceCart, setLineQuantity, stepLine, toOrderLines, type CartLine } from "./cart";
+import { addToCart, cartProblem, priceCart, sellableProducts, setLineQuantity, stepLine, toOrderLines, type CartLine } from "./cart";
 
 export interface CheckoutRequest {
   orderType: OrderType;
@@ -48,7 +48,7 @@ const loadDraft = (branchId: string): CartLine[] => {
  * consumption.ts.
  */
 export function usePosState() {
-  const { config, features, products, productsById, stockItems } = useShop();
+  const { config, features, categories, products, productsById, stockItems } = useShop();
   const { setup } = useDevice();
   const { branch, inventory, orders, isCheckoutReady } = useBranch();
   const { user } = useAuth();
@@ -70,13 +70,13 @@ export function usePosState() {
   /** Produk yang tampil di kasir cabang ini, sesuai fitur yang menyala. */
   const sellable = useMemo(
     () =>
-      products.filter(
-        (p) =>
-          isSoldAtBranch(p, branchId) &&
-          (features.weightSales || p.soldBy !== "weight") &&
-          (features.bundles || !(p.choiceGroups?.length)),
-      ),
-    [products, branchId, features.weightSales, features.bundles],
+      sellableProducts(products, {
+        branchId,
+        hiddenCategoryIds: new Set(categories.filter((c) => !c.active).map((c) => c.id)),
+        weightSales: features.weightSales,
+        bundles: features.bundles,
+      }),
+    [products, categories, branchId, features.weightSales, features.bundles],
   );
 
   /** Konsumsi bila ditambah sejumlah ini, untuk cek saat tap. */

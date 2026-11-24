@@ -4,7 +4,8 @@ import { CLIENT } from "../../client";
 import { shopCol, shopSingleton } from "../../data/paths";
 import type { Branch, Category, Product, ShopConfig, StockItem } from "../../domain/types";
 import { DEFAULT_FEATURES, parseFeatures, type FeatureFlags } from "../settings/featureFlags";
-import { brandForeground, brandRamp, parseShopConfig } from "./shopConfig";
+import { applyBrand, readBrand, writeBrand } from "./brandCache";
+import { parseShopConfig } from "./shopConfig";
 
 /**
  * Data toko yang dibaca semua layar: config, fitur, cabang, kategori, item
@@ -35,15 +36,8 @@ const byOrder = <T extends { order: number; name?: string }>(a: T, b: T) =>
 const listOf = <T,>(snap: QuerySnapshot<DocumentData>): T[] =>
   snap.docs.map((d) => ({ ...(d.data() as T), id: d.id }));
 
-const applyBrand = (hex: string) => {
-  const root = document.documentElement;
-  for (const [step, value] of Object.entries(brandRamp(hex))) root.style.setProperty(`--brand-${step}`, value);
-  root.style.setProperty("--brand-fg", brandForeground(hex));
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#ffffff");
-};
-
 export function ShopProvider({ enabled, children }: { enabled: boolean; children: ReactNode }) {
-  const [config, setConfig] = useState<ShopConfig>(() => parseShopConfig(undefined, CLIENT.name));
+  const [config, setConfig] = useState<ShopConfig>(() => parseShopConfig(readBrand() ?? undefined, CLIENT.name));
   const [features, setFeatures] = useState<FeatureFlags>(DEFAULT_FEATURES);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -69,7 +63,9 @@ export function ShopProvider({ enabled, children }: { enabled: boolean; children
         shopSingleton("config", "shop"),
         META,
         (snap) => {
-          setConfig(parseShopConfig(snap.data(), CLIENT.name));
+          const next = parseShopConfig(snap.data(), CLIENT.name);
+          setConfig(next);
+          if (snap.exists()) writeBrand({ name: next.name, brandColor: next.brandColor, logoUrl: next.logoUrl });
           markLoaded("config", snap.metadata.fromCache, !snap.exists());
         },
         onError("config"),

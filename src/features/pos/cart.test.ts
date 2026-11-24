@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Product } from "../../domain/types";
 import { PRESET_UNITS } from "../units/units";
 import { buildOrder, collectPaymentPatch, filterByBranch } from "../orders/buildOrder";
-import { addToCart, cartProblem, cashSuggestions, isSoldAtBranch, priceCart, stepLine, toOrderLines } from "./cart";
+import { addToCart, cartProblem, cashSuggestions, isSoldAtBranch, priceCart, sellableProducts, stepLine, toOrderLines } from "./cart";
 
 const p = (over: Partial<Product> & Pick<Product, "id">): Product => ({
   name: over.id,
@@ -102,6 +102,17 @@ describe("cart", () => {
       { stockItemId: "ayam", qty: 1 },
       { stockItemId: "hati", qty: 1 },
     ]);
+  });
+
+  it("produk di kasir mengikuti kategori tersembunyi, cabang, dan fitur", () => {
+    const inHidden = p({ id: "x", categoryId: "musiman" });
+    const elsewhere = p({ id: "y", branchIds: ["pkm"] });
+    const all = [ayam, kaki, paket, inHidden, elsewhere];
+    const ids = (f: Partial<Parameters<typeof sellableProducts>[1]>) =>
+      sellableProducts(all, { branchId: "tkl", hiddenCategoryIds: new Set(["musiman"]), weightSales: true, bundles: true, ...f }).map((x) => x.id);
+    expect(ids({})).toEqual(["ayam40", "kaki", "paket"]);
+    expect(ids({ hiddenCategoryIds: new Set() })).toEqual(["ayam40", "kaki", "paket", "x"]);
+    expect(ids({ weightSales: false, bundles: false })).toEqual(["ayam40"]);
   });
 
   it("saran uang tunai", () => {

@@ -234,7 +234,7 @@ export function CheckRow({ checked, onChange, label }: { checked: boolean; onCha
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="w-5 h-5 accent-[var(--brand-500)] shrink-0"
+        className="w-5 h-5 shrink-0"
       />
       <span className="text-sm md:text-base font-medium">{label}</span>
     </label>
@@ -278,7 +278,8 @@ export function Confirm({
   title: string;
   message: ReactNode;
   confirmLabel: string;
-  tone?: "primary" | "danger" | "warning";
+  /** "danger" hanya untuk menghapus/membatalkan; selain itu warna brand. */
+  tone?: "primary" | "danger";
   onConfirm: () => void;
   onClose: () => void;
 }) {
@@ -289,11 +290,7 @@ export function Confirm({
         <div className="flex flex-col gap-2 lg:flex-row">
           <button
             type="button"
-            className={cn(
-              "w-full lg:flex-1",
-              tone === "danger" ? "btn-danger" : "btn-primary",
-              tone === "warning" && "bg-amber-600 text-white hover:bg-amber-700",
-            )}
+            className={cn("w-full lg:flex-1", tone === "danger" ? "btn-danger" : "btn-primary")}
             onClick={() => {
               onConfirm();
               onClose();

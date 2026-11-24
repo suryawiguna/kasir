@@ -2,9 +2,12 @@
  * Fitur yang dinyalakan/dimatikan pemilik dari Pengaturan → Fitur, disimpan di
  * satu dokumen `settings/features`. Mematikan fitur menyembunyikannya dan
  * menghentikan aksinya, **tanpa menghapus data** yang sudah tercatat.
+ *
+ * Tidak ada saklar "banyak cabang": pemilih dan label cabang muncul sendiri
+ * begitu toko punya lebih dari satu cabang (Pengaturan → Cabang). Dokumen
+ * lama yang masih berisi `multiBranch` tetap diterima rules dan diabaikan.
  */
 export type FeatureName =
-  | "multiBranch"
   | "weightSales"
   | "bundles"
   | "preorder"
@@ -20,7 +23,6 @@ export type FeatureFlags = Record<FeatureName, boolean>;
 
 /** Nilai untuk toko tanpa dokumen `settings/features`. */
 export const DEFAULT_FEATURES: FeatureFlags = {
-  multiBranch: false,
   weightSales: false,
   bundles: true,
   preorder: true,
@@ -34,7 +36,6 @@ export const DEFAULT_FEATURES: FeatureFlags = {
 };
 
 export const FEATURE_ORDER: readonly FeatureName[] = [
-  "multiBranch",
   "weightSales",
   "bundles",
   "preorder",
@@ -48,7 +49,6 @@ export const FEATURE_ORDER: readonly FeatureName[] = [
 ];
 
 export const FEATURE_INFO: Record<FeatureName, { label: string; detail: string; ready: boolean }> = {
-  multiBranch: { label: "Banyak cabang", detail: "Tampilkan pilihan cabang dan laporan per cabang.", ready: true },
   weightSales: { label: "Jual per berat", detail: "Kasir mengetik berat untuk produk per kg/liter.", ready: true },
   bundles: { label: "Paket dan pilihan", detail: "Produk paket dan grup pilihan saat jual.", ready: true },
   preorder: { label: "Bayar nanti", detail: "Simpan pesanan yang dibayar saat diambil.", ready: true },

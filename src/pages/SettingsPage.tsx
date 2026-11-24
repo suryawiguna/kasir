@@ -174,7 +174,7 @@ function ShopSection() {
             ]}
           />
         </Field>
-        <Field group label="Pesanan langsung" hint="Pilih Diproses dulu bila barang perlu disiapkan (mis. dipotong) sebelum diserahkan.">
+        <Field group label="Pesanan langsung" hint="Pilih Diproses dulu bila barang perlu disiapkan (mis. dimasak atau dikemas) sebelum diserahkan.">
           <SegmentedControl
             className="w-full"
             value={draft.instantStatus}
@@ -330,7 +330,7 @@ function CategoryEditor({ initial, isNew, inUse, onClose }: { initial: Category;
     >
       <div className="space-y-4">
         <Field label="Nama">
-          <input className="field-input" autoFocus value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+          <input className="field-input" data-autofocus value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
         </Field>
         <Field label="Urutan" hint="Angka kecil tampil lebih dulu.">
           <input className="field-input" type="number" value={draft.order} onChange={(e) => setDraft({ ...draft, order: Number(e.target.value) || 0 })} />
@@ -430,7 +430,7 @@ function StockItemEditor({ initial, isNew, onClose }: { initial: StockItem; isNe
     >
       <div className="space-y-4">
         <Field label="Nama">
-          <input className="field-input" autoFocus value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Ayam utuh" />
+          <input className="field-input" data-autofocus value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Bahan A" />
         </Field>
         <Field group label="Satuan" hint={isNew ? undefined : "Tidak bisa diganti setelah dibuat: stok tersimpan dalam satuan ini."}>
           <SelectMenu
@@ -543,7 +543,7 @@ function UnitEditor({
     >
       <div className="space-y-4">
         <Field label="Nama satuan">
-          <input className="field-input" autoFocus value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })} placeholder="ikat" />
+          <input className="field-input" data-autofocus value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })} placeholder="ikat" />
         </Field>
         <Field
           label="Faktor satuan dasar"
@@ -645,7 +645,7 @@ function BranchEditor({ initial, isNew, onClose }: { initial: Branch; isNew: boo
     >
       <div className="space-y-4">
         <Field label="Nama cabang">
-          <input className="field-input" autoFocus value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Lapak Tikala" />
+          <input className="field-input" data-autofocus value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Cabang A" />
         </Field>
         <Field
           label="Kode"
@@ -658,7 +658,7 @@ function BranchEditor({ initial, isNew, onClose }: { initial: Branch; isNew: boo
             maxLength={6}
             value={draft.code}
             onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })}
-            placeholder="TKL"
+            placeholder="CBA"
           />
         </Field>
         <Field label="Header struk cabang (opsional)" hint="Menimpa header toko, mis. alamat cabang. Satu baris per baris.">
@@ -709,7 +709,6 @@ function DeviceSection() {
         title="Ganti setup perangkat?"
         message="Perangkat ini akan meminta pilihan cabang dan huruf lagi."
         confirmLabel="Ya, ganti"
-        tone="warning"
         onConfirm={clear}
       />
     </div>

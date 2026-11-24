@@ -433,7 +433,7 @@ function WeightSheet({
           <input
             className="field-input h-14 text-2xl font-bold tabular-nums"
             inputMode="decimal"
-            autoFocus
+            data-autofocus
             placeholder={`mis. ${formatUnitNumber(Math.round(1.5 * unit.factor), unit)}`}
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -505,7 +505,7 @@ function ChoiceSheet({
             <section key={group.id}>
               <div className="mb-2 flex items-baseline justify-between gap-2">
                 <h3 className="font-bold text-base">{group.label}</h3>
-                <span className={cn("pill", complete ? "bg-emerald-100 text-emerald-800" : "bg-zinc-100 text-zinc-600")}>
+                <span className={cn("pill", complete ? "bg-brand-100 text-brand-700" : "bg-zinc-100 text-zinc-600")}>
                   {count}/{group.max}
                   {group.min === 0 ? " · opsional" : ""}
                 </span>
@@ -652,7 +652,7 @@ function CheckoutSheet({
             </button>
           ) : (
             <button
-              className={cn("w-full h-12 text-base", payLater ? "btn-primary" : "btn-success")}
+              className="btn-primary w-full h-12 text-base"
               disabled={!pos.isCheckoutReady || cashShort}
               onClick={() => submit()}
             >
@@ -691,7 +691,7 @@ function CheckoutSheet({
                   <div
                     className={cn(
                       "flex items-center justify-between rounded-xl px-4 py-3 font-bold",
-                      change < 0 ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800",
+                      change < 0 ? "bg-red-50 text-red-700" : "bg-brand-50 text-brand-700",
                     )}
                   >
                     <span>{change < 0 ? "Kurang" : "Kembalian"}</span>
@@ -749,14 +749,14 @@ function DoneDialog({ done, onClose }: { done: { order: Order; change: number | 
     <Drawer open={done !== null} onClose={onClose} variant="dialog" size="xs" bodyClassName="p-6">
       {shown && (
         <div className="space-y-4 text-center">
-          <CircleCheck size={48} className="mx-auto text-emerald-600" />
+          <CircleCheck size={48} className="mx-auto text-brand-500" />
           <div>
             <p className="text-sm text-zinc-500">Nomor pesanan</p>
             <p className="text-5xl font-bold tabular-nums tracking-tight">{formatOrderNumberShort(shown.order.orderNumber)}</p>
           </div>
           <p className="text-lg font-bold tabular-nums">{formatRupiah(shown.order.totalAmount)}</p>
           {shown.change !== null && (
-            <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 font-bold text-emerald-800">
+            <div className="flex items-center justify-between rounded-xl bg-brand-50 px-4 py-3 font-bold text-brand-700">
               <span>Kembalian</span>
               <span className="text-2xl tabular-nums">{formatRupiah(shown.change)}</span>
             </div>

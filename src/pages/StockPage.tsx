@@ -133,7 +133,7 @@ export default function StockPage() {
                 <li key={h.id} className="px-4 py-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-bold">{item?.name ?? h.stockItemId}</p>
-                    <span className={cn("pill", h.kind === "add" ? "bg-emerald-100 text-emerald-800" : "bg-sky-100 text-sky-800")}>
+                    <span className={cn("pill", h.kind === "add" ? "bg-brand-100 text-brand-700" : "bg-zinc-100 text-zinc-700")}>
                       {h.kind === "add" ? "Stok masuk" : "Hitung ulang"}
                     </span>
                   </div>
@@ -229,7 +229,7 @@ function AdjustSheet({
           <input
             className="field-input h-14 text-2xl font-bold tabular-nums"
             inputMode="decimal"
-            autoFocus
+            data-autofocus
             value={text}
             onChange={(e) => setText(e.target.value)}
           />

@@ -266,7 +266,7 @@ function OrderDetail({ order, open, onClose, isOwner }: { order: Order | null; o
             </span>
           </div>
           {order.paymentStatus === "unpaid" && !cancelled && (
-            <button className="btn-success w-full" onClick={() => setCollecting(true)}>
+            <button className="btn-secondary w-full" onClick={() => setCollecting(true)}>
               Terima pembayaran
             </button>
           )}
@@ -301,7 +301,7 @@ function OrderDetail({ order, open, onClose, isOwner }: { order: Order | null; o
                       </p>
                     ) : null}
                     {line.freeItems?.length ? (
-                      <p className="text-sm text-emerald-700">Bonus: {line.freeItems.map((f) => `${f.qty}× ${f.name}`).join(", ")}</p>
+                      <p className="text-sm text-brand-700">Bonus: {line.freeItems.map((f) => `${f.qty}× ${f.name}`).join(", ")}</p>
                     ) : null}
                     <p className="text-sm text-zinc-500 tabular-nums">
                       {formatQuantity(line.quantity, unit)} × {formatRupiah(line.price)}
@@ -362,7 +362,6 @@ function OrderDetail({ order, open, onClose, isOwner }: { order: Order | null; o
         title="Tandai belum bayar?"
         message="Metode bayar dan uang diterima dihapus dari pesanan ini."
         confirmLabel="Ya, tandai"
-        tone="warning"
         onConfirm={() => markOrderUnpaid(order, by)}
       />
     </Drawer>
@@ -401,7 +400,7 @@ function CollectPaymentSheet({
       title={`Terima ${formatRupiah(order.totalAmount)}`}
       footer={
         <button
-          className="btn-success w-full h-12 text-base"
+          className="btn-primary w-full h-12 text-base"
           disabled={method === "cash" && (cash === null || cash < order.totalAmount)}
           onClick={() => {
             const message = collectPayment(order, method, method === "cash" ? (cash ?? undefined) : undefined, by);
@@ -439,7 +438,7 @@ function CollectPaymentSheet({
               <div
                 className={cn(
                   "flex items-center justify-between rounded-xl px-4 py-3 font-bold",
-                  change < 0 ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800",
+                  change < 0 ? "bg-red-50 text-red-700" : "bg-brand-50 text-brand-700",
                 )}
               >
                 <span>{change < 0 ? "Kurang" : "Kembalian"}</span>

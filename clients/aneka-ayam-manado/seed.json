@@ -99,7 +99,6 @@
     "instantStatus": "completed"
   },
   "features": {
-    "multiBranch": true,
     "weightSales": true,
     "bundles": true,
     "preorder": true,

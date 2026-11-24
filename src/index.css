@@ -65,6 +65,14 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Kotak centang, radio, dan slider bawaan browser ikut warna toko
+     (bawaannya biru). */
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"] {
+    accent-color: var(--brand-500);
+  }
+
   /* Preflight v4 membuat tombol `cursor: default`. */
   button,
   [role="button"],
@@ -143,7 +151,6 @@
 @layer components {
   .btn-primary,
   .btn-secondary,
-  .btn-success,
   .btn-neutral,
   .btn-ghost,
   .btn-danger,
@@ -160,7 +167,6 @@
 
   .btn-primary,
   .btn-secondary,
-  .btn-success,
   .btn-neutral,
   .btn-ghost,
   .btn-danger,
@@ -190,11 +196,6 @@
 
   .btn-ghost {
     @apply text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900;
-  }
-
-  /* Emerald = "selesai/lunas". Tombol yang menutup transaksi uang. */
-  .btn-success {
-    @apply bg-emerald-600 text-white hover:bg-emerald-700;
   }
 
   /* Merah solid bila menghapus ADALAH aksinya; versi tenang bila berdiri di
@@ -307,6 +308,13 @@
 [data-sonner-toaster] [data-sonner-toast] {
   font-family: var(--font-sans);
   font-size: 0.9375rem;
+}
+/* Toast berhasil memakai warna toko, bukan hijau bawaan sonner. Galat (merah)
+   dan peringatan (kuning) tetap semantik. */
+html [data-sonner-toaster][data-sonner-theme="light"] {
+  --success-bg: var(--brand-50);
+  --success-border: var(--brand-100);
+  --success-text: var(--brand-700);
 }
 @media (min-width: 64rem) {
   [data-sonner-toaster] {

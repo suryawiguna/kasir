@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { accessProblem, parseClaims, usernameToEmail, emailToUsername } from "../auth/claims";
 import { effectiveSetup, parseDeviceSetup, suggestDeviceLetter } from "../device/deviceSetup";
 import { DEFAULT_FEATURES, parseFeatures } from "../settings/featureFlags";
-import { brandForeground, brandRamp, parseShopConfig } from "./shopConfig";
+import { brandForeground, brandRamp, contrastRatio, parseShopConfig, TEXT_CONTRAST } from "./shopConfig";
 
 describe("parseShopConfig", () => {
   it("dokumen kosong memberi config utuh", () => {
@@ -40,6 +40,20 @@ describe("brand", () => {
     expect(Object.keys(ramp)).toHaveLength(10);
     expect(brandForeground("#dc2626")).toBe("#ffffff");
     expect(brandForeground("#fde047")).toBe("#18181b");
+  });
+
+  it("teks brand-700 tetap terbaca untuk warna terang", () => {
+    for (const color of ["#facc15", "#fde047", "#a3e635", "#67e8f9", "#ffffff"]) {
+      const ramp = brandRamp(color);
+      expect(contrastRatio(ramp["700"], ramp["50"])).toBeGreaterThanOrEqual(TEXT_CONTRAST);
+      expect(contrastRatio(ramp["700"], "#ffffff")).toBeGreaterThanOrEqual(TEXT_CONTRAST);
+    }
+  });
+
+  it("warna gelap tidak digeser", () => {
+    // 700 tetap campuran 25% hitam, sama seperti sebelum penyesuaian kontras.
+    expect(brandRamp("#0f766e")["700"]).toBe("#0b5953");
+    expect(brandRamp("#dc2626")["700"]).toBe("#a51d1d");
   });
 });
 
@@ -81,6 +95,6 @@ describe("device setup", () => {
 describe("featureFlags", () => {
   it("default untuk yang hilang atau bukan boolean", () => {
     expect(parseFeatures(null)).toEqual(DEFAULT_FEATURES);
-    expect(parseFeatures({ multiBranch: true, qris: "ya" })).toEqual({ ...DEFAULT_FEATURES, multiBranch: true });
+    expect(parseFeatures({ weightSales: true, qris: "ya", multiBranch: true })).toEqual({ ...DEFAULT_FEATURES, weightSales: true });
   });
 });

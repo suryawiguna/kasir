@@ -1,7 +1,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Drawer } from "../components/Drawer";
+import { Drawer, TRANSITION_MS } from "../components/Drawer";
 import { SelectMenu } from "../components/SelectMenu";
 import { Confirm, Field, RowChevron, SegmentedControl, Toggle } from "../components/ui";
 import type { ChoiceGroup, Consume, Product, StockItem, StockMode, Unit } from "../domain/types";
@@ -75,7 +75,7 @@ export function ProductsSection() {
           ))}
         </ul>
       )}
-      {editing && <ProductEditor initial={editing.product} isNew={editing.isNew} onClose={() => setEditing(null)} />}
+      {editing && <ProductEditor key={editing.product.id} initial={editing.product} isNew={editing.isNew} onClose={() => setEditing(null)} />}
     </div>
   );
 }
@@ -178,6 +178,7 @@ interface GroupDraft extends Omit<ChoiceGroup, "options"> {
 
 function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: boolean; onClose: () => void }) {
   const { config, categories, stockItems, products, branches, features } = useShop();
+  const [open, setOpen] = useState(true);
   const [draft, setDraft] = useState<Product>(initial);
   const [priceText, setPriceText] = useState(initial.price ? String(initial.price) : "");
   const [rows, setRows] = useState<ConsumeRow[]>(() =>
@@ -207,12 +208,27 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
   const ownItem = stockItems.find((s) => s.id === ownStockItemId(draft.id));
   const showBundles = features.bundles || groups.length > 0;
   const freeCandidates = useMemo(() => products.filter((p) => p.id !== draft.id), [products, draft.id]);
+  // Item "stok sendiri" menyimpan jumlah dalam satuan dasar satuan jual. Satuan
+  // dengan faktor lain (pcs → kg) akan membaca stok yang ada dengan skala salah.
+  const ownUnit = ownItem ? findUnit(config.units, ownItem.unit) : null;
+  const ownUnitClash = draft.stockMode === "own" && ownUnit !== null && ownUnit.factor !== unit.factor;
+
+  /** Tutup dengan animasi, lalu lepas editor (pola yang sama dengan editor lain). */
+  const close = () => {
+    setOpen(false);
+    setTimeout(onClose, TRANSITION_MS);
+  };
 
   const save = () => {
     setError("");
     const price = parseRupiahInput(priceText);
     if (!draft.name.trim()) return setError("Nama produk wajib diisi.");
     if (price === null) return setError("Harga wajib diisi.");
+    if (ownUnitClash) {
+      return setError(
+        `Stok sendiri produk ini tercatat dalam ${ownUnit.label}. Pilih satuan jual dengan faktor yang sama, atau pakai stok bersama.`,
+      );
+    }
 
     let shared: Consume[] = [];
     if (draft.stockMode === "shared") {
@@ -264,7 +280,7 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
     };
     saveProduct(product, shared, stockItems, config.units);
     toast.success(`${product.name} disimpan`);
-    onClose();
+    close();
   };
 
   const newGroup = (): GroupDraft => ({
@@ -278,9 +294,9 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
 
   return (
     <Drawer
-      open
+      open={open}
       size="lg"
-      onClose={onClose}
+      onClose={close}
       title={isNew ? "Produk baru" : draft.name || "Produk"}
       footer={
         <div className="space-y-2">
@@ -301,7 +317,7 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
       <div className="space-y-6">
         <section className="grid gap-3 sm:grid-cols-2">
           <Field label="Nama">
-            <input className="field-input" autoFocus={isNew} value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="Ayam Segar 40K" />
+            <input className="field-input" data-autofocus={isNew || undefined} value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="Produk A" />
           </Field>
           <Field label="SKU (opsional)">
             <input className="field-input" value={draft.sku ?? ""} onChange={(e) => set("sku", e.target.value)} />
@@ -314,7 +330,11 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
               options={[{ value: "", label: "Tanpa kategori" }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
             />
           </Field>
-          <Field group label="Satuan jual">
+          <Field
+            group
+            label="Satuan jual"
+            error={ownUnitClash ? `Stok sendiri tercatat dalam ${ownUnit.label}; satuan ini memakai faktor lain.` : undefined}
+          >
             <SelectMenu
               label="Satuan jual"
               value={draft.unit}
@@ -375,7 +395,7 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
               </button>
             </div>
             <p className="field-hint -mt-2">
-              Untuk paket yang isinya dipilih saat jual (mis. "Pilih 3 ayam"), varian rasa, atau level pedas.
+              Untuk paket yang isinya dipilih saat jual (mis. "Pilih 3 produk"), varian, ukuran, atau tingkat pedas.
             </p>
             {groups.map((g, gi) => (
               <GroupEditor
@@ -481,7 +501,7 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
         tone="danger"
         onConfirm={() => {
           deleteProduct(initial);
-          onClose();
+          close();
         }}
       />
     </Drawer>
@@ -519,7 +539,7 @@ function GroupEditor({
   return (
     <div className="space-y-3 card p-3">
       <div className="flex items-center gap-2">
-        <input className="field-input flex-1" placeholder="Nama grup, mis. Pilih 3 ayam" value={group.label} onChange={(e) => onChange({ ...group, label: e.target.value })} />
+        <input className="field-input flex-1" placeholder="Nama grup, mis. Pilih varian" value={group.label} onChange={(e) => onChange({ ...group, label: e.target.value })} />
         <button className="btn-ghost h-9 w-9 px-0" onClick={onRemove} aria-label="Hapus grup">
           <Trash2 size={16} />
         </button>
@@ -543,7 +563,7 @@ function GroupEditor({
         {group.options.map((o, i) => (
           <li key={o.id} className="space-y-2 rounded-xl bg-zinc-50 p-3">
             <div className="flex items-center gap-2">
-              <input className="field-input flex-1" placeholder="Nama opsi, mis. Ukuran 40K" value={o.label} onChange={(e) => setOption(i, { label: e.target.value })} />
+              <input className="field-input flex-1" placeholder="Nama opsi, mis. Varian A" value={o.label} onChange={(e) => setOption(i, { label: e.target.value })} />
               <input
                 className="field-input w-28 text-right tabular-nums"
                 inputMode="numeric"

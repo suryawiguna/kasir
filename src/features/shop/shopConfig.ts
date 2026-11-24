@@ -87,35 +87,56 @@ const mix = (hex: string, target: [number, number, number], amount: number): str
   return rgbToHex(r + (target[0] - r) * amount, g + (target[1] - g) * amount, b + (target[2] - b) * amount);
 };
 
+/** Luminans relatif WCAG. */
+const luminance = (hex: string): number => {
+  const [r, g, b] = hexToRgb(hex).map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+/** Rasio kontras WCAG antara dua warna (1–21). */
+export const contrastRatio = (a: string, b: string): number => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+/** Kontras minimum teks normal (WCAG AA). */
+export const TEXT_CONTRAST = 4.5;
+
 /**
  * Satu warna brand menjadi tangga 50–900 untuk Tailwind (`bg-brand-500` dll).
  * 500 adalah warna yang dipilih pemilik (sama seperti Haoshii, tempat
  * `.btn-primary` = `bg-brand-500`); yang lain dicampur ke putih/hitam.
+ *
+ * `text-brand-700` adalah warna teks brand di atas putih dan brand-50 (harga,
+ * tab aktif, link). Untuk warna terang (kuning, hijau muda) campuran 25% hitam
+ * belum cukup terbaca, jadi 700 digelapkan sampai kontrasnya ≥ 4.5 terhadap
+ * brand-50, dan 800/900 ikut bergeser. Warna gelap tidak berubah.
  */
 export const brandRamp = (hex: string): Record<string, string> => {
   const base = HEX.test(hex) ? hex : DEFAULT_BRAND_COLOR;
   const white: [number, number, number] = [255, 255, 255];
   const black: [number, number, number] = [0, 0, 0];
+  const tint50 = mix(base, white, 0.93);
+  let dark700 = 0.25;
+  while (dark700 < 0.95 && contrastRatio(mix(base, black, dark700), tint50) < TEXT_CONTRAST) dark700 += 0.01;
+  const shift = dark700 - 0.25;
   return {
-    "50": mix(base, white, 0.93),
+    "50": tint50,
     "100": mix(base, white, 0.86),
     "200": mix(base, white, 0.7),
     "300": mix(base, white, 0.5),
     "400": mix(base, white, 0.25),
     "500": base.toLowerCase(),
     "600": mix(base, black, 0.12),
-    "700": mix(base, black, 0.25),
-    "800": mix(base, black, 0.4),
-    "900": mix(base, black, 0.55),
+    "700": mix(base, black, dark700),
+    "800": mix(base, black, Math.min(0.95, 0.4 + shift)),
+    "900": mix(base, black, Math.min(0.97, 0.55 + shift)),
   };
 };
 
 /** Teks di atas warna brand: putih atau hampir hitam, mana yang kontrasnya lebih tinggi. */
-export const brandForeground = (hex: string): string => {
-  const [r, g, b] = hexToRgb(HEX.test(hex) ? hex : DEFAULT_BRAND_COLOR).map((v) => {
-    const c = v / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return luminance > 0.4 ? "#18181b" : "#ffffff";
-};
+export const brandForeground = (hex: string): string =>
+  luminance(HEX.test(hex) ? hex : DEFAULT_BRAND_COLOR) > 0.4 ? "#18181b" : "#ffffff";
