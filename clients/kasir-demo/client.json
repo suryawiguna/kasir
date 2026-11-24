@@ -1,0 +1,14 @@
+{
+  "slug": "kasir-demo",
+  "name": "Toko Demo",
+  "shortName": "Toko Demo",
+  "usernameDomain": "kasir-demo.local",
+  "hostingUrl": "https://kasir-demo.web.app",
+  "workerUrl": "",
+  "firebase": {
+    "apiKey": "AIzaSyAob6APmdELpDKyXvz3-QmmreKrq1vcPIY",
+    "authDomain": "kasir-demo.firebaseapp.com",
+    "projectId": "kasir-demo",
+    "appId": "1:133779462341:web:1a9de3c75aa3ed5d47f8ac"
+  }
+}

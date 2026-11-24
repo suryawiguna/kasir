@@ -37,6 +37,8 @@ npm run deploy -- --client <slug> | --all
 
 Akun uji emulator (dari `clients/demo/seed.json`): `owner`, `kasir1` (cabang tkl), `kasir2` (cabang pkm), kata sandi `test1234`.
 
+Demo online: klien `kasir-demo` (project Firebase `kasir-demo`) di https://kasir-demo.web.app, data umum (Cabang A/B, Produk A–F), akun `owner`, `kasira`, `kasirb`. Kata sandinya dibagikan ke calon klien: anggap isinya publik. `npm run seed -- --client kasir-demo --force` mengembalikan katalog dan stok, tetapi tidak menghapus pesanan.
+
 Emulator butuh Java 21 (Temurin 21 terpasang di Mac ini lewat `brew install --cask temurin@21`; `brew install openjdk@21` gagal karena macOS ini Tier 3 dan butuh Xcode untuk kompilasi). Emulator bind ke `0.0.0.0` supaya HP di Wi-Fi yang sama bisa memakai `npm run dev` + emulator di laptop.
 
 ## Arsitektur
