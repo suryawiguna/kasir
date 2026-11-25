@@ -63,7 +63,7 @@ function Gate() {
         <h1 className="text-xl font-bold">Toko belum disiapkan</h1>
         <p className="text-sm text-zinc-500">
           {claims?.role === "owner"
-            ? "Belum ada cabang. Jalankan seed toko (npm run seed) atau buat cabang pertama di bawah."
+            ? "Belum ada cabang. Buat cabang pertama di bawah."
             : "Belum ada cabang. Minta pemilik menyiapkan toko."}
         </p>
         {claims?.role === "owner" && <DeviceSetupPage firstBranch />}

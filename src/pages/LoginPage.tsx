@@ -2,7 +2,6 @@ import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { CLIENT } from "../client";
 import { ShopLogo } from "../components/ShopLogo";
-import { USE_EMULATOR } from "../data/firebase";
 import { useAuth } from "../features/auth/AuthContext";
 import { readBrand } from "../features/shop/brandCache";
 
@@ -96,11 +95,6 @@ export function LoginPage() {
             {busy ? "Memproses…" : "Masuk"}
           </button>
         </form>
-        {USE_EMULATOR && (
-          <p className="mt-3 rounded-xl border border-amber-100 bg-amber-50 p-3 text-center text-sm text-amber-800">
-            Mode emulator: data uji coba lokal, bukan data toko sungguhan.
-          </p>
-        )}
       </div>
     </div>
   );

@@ -54,7 +54,7 @@ const findWritableCharacteristic = async (
       return writable;
     }
   }
-  throw new Error("Printer tidak punya jalur tulis yang dikenali");
+  throw new Error("Printer ini belum didukung. Coba cetak lewat browser.");
 };
 
 const connect = async (): Promise<BluetoothRemoteGATTCharacteristic> => {
@@ -85,7 +85,7 @@ const connect = async (): Promise<BluetoothRemoteGATTCharacteristic> => {
     acceptAllDevices: true,
     optionalServices: PRINTER_SERVICES,
   });
-  if (!device.gatt) throw new Error("Printer tidak mendukung koneksi GATT");
+  if (!device.gatt) throw new Error("Printer ini tidak bisa dihubungkan lewat Bluetooth.");
 
   const server = await device.gatt.connect();
   const characteristic = await findWritableCharacteristic(server);
