@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev": "CLIENT=${CLIENT:-kasir-demo} vite --port=3000 --host=0.0.0.0",
+    "dev:emulator": "CLIENT=demo vite --port=3000 --host=0.0.0.0",
     "dev:test": "VITE_USE_EMULATOR=true vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",

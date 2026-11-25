@@ -23,7 +23,8 @@ Setiap pilihan (cara hitung stok, satuan, kategori, isi paket, harga per cabang,
 ## Perintah
 
 ```bash
-npm run dev          # klien demo (project demo-kasir) → otomatis ke emulator
+npm run dev          # klien kasir-demo (project Firebase asli, data demo online). CLIENT=<slug> untuk klien lain
+npm run dev:emulator # klien demo (project demo-kasir) → emulator, untuk uji yang tidak boleh menyentuh data online
 npm run emulators    # Firestore + Auth emulator (Java 21)
 npm run seed -- --client demo     # isi emulator: Setup A Aneka Ayam + akun uji
 npm run lint         # tsc --noEmit + scripts/check-paths.mjs
@@ -36,7 +37,9 @@ npm run deploy -- --client <slug> | --all
 npm --prefix worker run dev       # Worker foto lokal di :8787 (salin worker/.dev.vars.example ke .dev.vars)
 ```
 
-Akun uji emulator (dari `clients/demo/seed.json`): `owner`, `kasir1` (cabang tkl), `kasir2` (cabang pkm), kata sandi `test1234`.
+**Dev lokal memakai kasir-demo, bukan emulator** (permintaan pemilik repo): perubahan data saat `npm run dev` langsung terlihat di demo online. Unggah foto dari localhost ditolak Worker (origin localhost tidak terdaftar untuk kasir-demo).
+
+Akun uji emulator (`npm run dev:emulator`, dari `clients/demo/seed.json`): `owner`, `kasir1` (cabang tkl), `kasir2` (cabang pkm), kata sandi `test1234`.
 
 Demo online: klien `kasir-demo` (project Firebase `kasir-demo`) di https://kasir-demo.web.app, data umum (Cabang A/B, Produk A–F), akun `owner`, `kasira`, `kasirb`. Kata sandinya dibagikan ke calon klien: anggap isinya publik. `npm run seed -- --client kasir-demo --force` mengembalikan katalog dan stok, tetapi tidak menghapus pesanan.
 
