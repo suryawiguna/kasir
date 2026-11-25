@@ -2,6 +2,7 @@ import { ChevronDown, CircleCheck, Plus, Printer, Scale, ShoppingCart, SlidersHo
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CLOSE_ICON_SIZE, Drawer } from "../components/Drawer";
+import { ProductImage } from "../components/ProductImage";
 import { ReceiptSheet } from "../components/ReceiptSheet";
 import { CheckRow, Confirm, SegmentedControl, Stepper } from "../components/ui";
 import type { LineChoice, Order, PaymentMethod, Product, Unit } from "../domain/types";
@@ -252,6 +253,8 @@ function ProductRow({
   units: Unit[];
   onTap: () => void;
 }) {
+  const { features } = useShop();
+  const showPhoto = features.productPhotos;
   const unit = findUnit(units, product.unit);
   const step = stepBase(unit);
   const opensSheet = product.soldBy === "weight" || Boolean(product.choiceGroups?.length);
@@ -274,9 +277,7 @@ function ProductRow({
         !canAdd && "opacity-60",
       )}
     >
-      {product.image && (
-        <img src={product.image} alt="" className="w-14 h-14 -ml-1 rounded-xl object-cover bg-zinc-100 shrink-0" />
-      )}
+      {showPhoto && <ProductImage imageKey={product.image} name={product.name} className="w-14 h-14 -ml-1 rounded-xl" />}
       <div className="flex-1 min-w-0">
         <h3 className="font-bold text-sm md:text-base text-zinc-900 leading-[1.2] line-clamp-2">{product.name}</h3>
         <div className="flex flex-wrap items-baseline gap-x-2 mt-0.5">

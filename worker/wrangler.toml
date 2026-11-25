@@ -1,0 +1,25 @@
+# Worker foto produk dan logo untuk semua klien kasir-base. Lihat src/handler.ts
+# dan docs/IMAGES-PLAN.md.
+#
+# Satu bucket R2 per klien. Menambah klien: tambah [[r2_buckets]] dengan
+# binding BUCKET_<SLUG>, tambah entri di CLIENTS (kunci = project id
+# Firebase), lalu `npm run deploy` di folder ini.
+#
+# Bukan Worker atau bucket Haoshii: jangan pernah menunjuk ke sana.
+name = "kasir-media"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[[r2_buckets]]
+binding = "BUCKET_KASIR_DEMO"
+bucket_name = "kasir-demo"
+
+# Batas laju per akun pemilik. Binding ini opsional di handler: kalau tidak
+# tersedia, pemeriksaan dilewati dan batas harian tetap berlaku.
+[[ratelimits]]
+name = "UPLOAD_LIMITER"
+namespace_id = "1001"
+simple = { limit = 30, period = 60 }
+
+[vars]
+CLIENTS = '{"kasir-demo":{"slug":"kasir-demo","bucket":"BUCKET_KASIR_DEMO","origins":["https://kasir-demo.web.app","https://kasir-demo.firebaseapp.com"],"maxUploadsPerDay":200}}'

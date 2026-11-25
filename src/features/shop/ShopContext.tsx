@@ -65,7 +65,7 @@ export function ShopProvider({ enabled, children }: { enabled: boolean; children
         (snap) => {
           const next = parseShopConfig(snap.data(), CLIENT.name);
           setConfig(next);
-          if (snap.exists()) writeBrand({ name: next.name, brandColor: next.brandColor, logoUrl: next.logoUrl });
+          if (snap.exists()) writeBrand({ name: next.name, brandColor: next.brandColor, logo: next.logo, logoUrl: next.logoUrl });
           markLoaded("config", snap.metadata.fromCache, !snap.exists());
         },
         onError("config"),

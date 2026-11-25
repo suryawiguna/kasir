@@ -99,13 +99,16 @@ service cloud.firestore {
     // ---------------------------------------------------------------
 
     function isValidShopConfig(data) {
-      return hasOnly(data, ['name', 'logoUrl', 'brandColor', 'units', 'receipt', 'currency', 'timezone',
+      return hasOnly(data, ['name', 'logo', 'logoUrl', 'brandColor', 'units', 'receipt', 'currency', 'timezone',
           'stockPolicy', 'instantStatus', 'updatedBy', 'updatedAt']) &&
         hasAll(data, ['name', 'brandColor', 'units', 'currency', 'timezone']) &&
         shortString(data.name, 80) &&
         data.brandColor is string && data.brandColor.matches('^#[0-9a-fA-F]{6}$') &&
         data.units is list && data.units.size() <= 50 &&
         optMap(data, 'receipt') &&
+        // Logo unggahan: key R2, pola sama dengan src/features/media/imageKeys.ts.
+        (!('logo' in data) || (data.logo is string && data.logo.matches('^brand/logo/[0-9a-f]{16}[.](jpg|png)$'))) &&
+        // Lama, sebelum unggah ada. Masih diterima supaya dokumen lama bisa disimpan.
         optString(data, 'logoUrl', 500) &&
         data.currency == 'IDR' &&
         data.timezone in ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura'] &&
@@ -122,7 +125,7 @@ service cloud.firestore {
 
     function isValidFeatures(data) {
       return hasOnly(data, ['multiBranch', 'receipt', 'weightSales', 'bundles', 'preorder', 'customers', 'transfer', 'qris',
-          'kitchenTicket', 'events', 'cashCount', 'proofPhotos', 'updatedBy', 'updatedAt']) &&
+          'kitchenTicket', 'events', 'cashCount', 'proofPhotos', 'productPhotos', 'updatedBy', 'updatedAt']) &&
         (!('multiBranch' in data) || data.multiBranch is bool) &&
         (!('receipt' in data) || data.receipt is bool) &&
         (!('weightSales' in data) || data.weightSales is bool) &&
@@ -135,6 +138,7 @@ service cloud.firestore {
         (!('events' in data) || data.events is bool) &&
         (!('cashCount' in data) || data.cashCount is bool) &&
         (!('proofPhotos' in data) || data.proofPhotos is bool) &&
+        (!('productPhotos' in data) || data.productPhotos is bool) &&
         stampedByMe(data);
     }
 
@@ -219,7 +223,11 @@ service cloud.firestore {
         optList(data, 'freeItems', 10) &&
         optList(data, 'branchIds', 50) &&
         optMap(data, 'priceByBranch') &&
-        optString(data, 'image', 300) &&
+        // Foto: key R2 di folder produk ini sendiri, bukan URL bebas. Pola sama
+        // dengan src/features/media/imageKeys.ts (id produk tanpa karakter regex).
+        (!('image' in data) || (data.image is string &&
+          id.matches('^[A-Za-z0-9_-]{1,100}$') &&
+          data.image.matches('^products/' + id + '/[0-9a-f]{16}[.]jpg$'))) &&
         data.active is bool &&
         data.order is number;
     }

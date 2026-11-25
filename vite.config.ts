@@ -19,6 +19,28 @@ if (client.slug !== slug) {
   throw new Error(`clients/${slug}/client.json berisi slug "${client.slug}". Samakan dulu.`);
 }
 
+/**
+ * Foto produk dan logo dari Worker `kasir-media`: CacheFirst, karena nama file
+ * berdasarkan isi (satu nama = satu isi selamanya). Kasir offline tetap
+ * melihat foto yang pernah dimuat. `<img crossOrigin="anonymous">` membuat
+ * jawabannya berstatus 200 (bukan opaque), jadi boleh di-cache. RegExp, bukan
+ * fungsi: konfigurasi ini diserialisasi ke sw.js tanpa variabel di sekitarnya.
+ */
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const mediaCaching = client.workerUrl
+  ? [
+      {
+        urlPattern: new RegExp(`^${escapeRegExp(String(client.workerUrl).replace(/\/+$/, ""))}/v1/`),
+        handler: "CacheFirst" as const,
+        options: {
+          cacheName: `${slug}-media`,
+          expiration: { maxEntries: 500, maxAgeSeconds: 90 * 24 * 60 * 60, purgeOnQuotaError: true },
+          cacheableResponse: { statuses: [200] },
+        },
+      },
+    ]
+  : [];
+
 export default defineConfig({
   define: {
     __CLIENT__: JSON.stringify(client),
@@ -43,6 +65,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        runtimeCaching: mediaCaching,
       },
     }),
   ],

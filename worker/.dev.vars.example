@@ -1,0 +1,6 @@
+# Salin ke .dev.vars untuk `npm run dev` (wrangler dev) dengan emulator Firebase.
+# Token Auth emulator tidak bertanda tangan (alg: none); hanya diterima di sini.
+ACCEPT_EMULATOR_TOKENS=true
+# demo-kasir = project emulator klien `demo`. Bucket lokal disimulasikan wrangler.
+# Tambah origin http://<IP-laptop>:3000 untuk mencoba dari HP di Wi-Fi yang sama.
+CLIENTS={"demo-kasir":{"slug":"demo","bucket":"BUCKET_KASIR_DEMO","origins":["http://localhost:3000","http://127.0.0.1:3000"],"maxUploadsPerDay":200}}

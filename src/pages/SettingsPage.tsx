@@ -2,6 +2,7 @@ import { Plus } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Drawer } from "../components/Drawer";
+import { ImagePicker } from "../components/ImagePicker";
 import { SelectMenu } from "../components/SelectMenu";
 import { Confirm, Field, RowChevron, SegmentedControl, Toggle } from "../components/ui";
 import type { Branch, Category, ShopConfig, StockItem, Timezone, Unit } from "../domain/types";
@@ -148,8 +149,14 @@ function ShopSection() {
             <input className="field-input font-mono" value={draft.brandColor} onChange={(e) => set("brandColor", e.target.value)} />
           </div>
         </Field>
-        <Field label="URL logo (opsional)" hint="Unggah logo dari aplikasi menyusul (Fase 6).">
-          <input className="field-input" value={draft.logoUrl ?? ""} onChange={(e) => set("logoUrl", e.target.value || undefined)} />
+        <Field group label="Logo" hint="Tampil di layar masuk dan menu. Perubahan berlaku setelah Simpan.">
+          <ImagePicker
+            target={{ kind: "logo" }}
+            value={draft.logo ?? undefined}
+            name={draft.name}
+            // Logo unggahan menggantikan URL lama sepenuhnya.
+            onChange={(key) => setDraft((d) => ({ ...d, logo: key, logoUrl: undefined }))}
+          />
         </Field>
       </div>
 

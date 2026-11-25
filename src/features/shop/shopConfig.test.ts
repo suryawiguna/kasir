@@ -32,6 +32,13 @@ describe("parseShopConfig", () => {
     expect(c.stockPolicy).toBe("warn");
   });
 
+  it("logo hanya key unggahan yang sah; logoUrl lama tetap terbaca", () => {
+    expect(parseShopConfig({ logo: "brand/logo/3f9a1c0b7d2e4a55.png" }, "x").logo).toBe("brand/logo/3f9a1c0b7d2e4a55.png");
+    expect(parseShopConfig({ logo: "https://example.com/logo.png" }, "x").logo).toBeUndefined();
+    expect(parseShopConfig({ logo: "products/a/3f9a1c0b7d2e4a55.jpg" }, "x").logo).toBeUndefined();
+    expect(parseShopConfig({ logoUrl: "https://example.com/logo.png" }, "x").logoUrl).toBe("https://example.com/logo.png");
+  });
+
   it("lebar kertas hanya 32 atau 48 kolom", () => {
     expect(parseShopConfig({ receipt: { paperWidth: 48 } }, "x").receipt.paperWidth).toBe(48);
     expect(parseShopConfig({ receipt: { paperWidth: 40 } }, "x").receipt.paperWidth).toBe(32);

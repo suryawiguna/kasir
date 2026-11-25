@@ -4,7 +4,7 @@
   "shortName": "Kasir Demo",
   "usernameDomain": "demo.local",
   "hostingUrl": "",
-  "workerUrl": "",
+  "workerUrl": "http://localhost:8787",
   "firebase": {
     "apiKey": "demo-api-key",
     "authDomain": "demo-kasir.firebaseapp.com",

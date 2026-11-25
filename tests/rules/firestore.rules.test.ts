@@ -156,6 +156,18 @@ describe("config/shop dan settings/features", () => {
     await assertFails(setDoc(doc(owner(), "config/shop"), { ...shop, updatedBy: STAFF_TKL }));
   });
 
+  it("logo: hanya key unggahan di brand/logo", async () => {
+    await assertSucceeds(setDoc(doc(owner(), "config/shop"), { ...shop, logo: "brand/logo/3f9a1c0b7d2e4a55.png" }));
+    await assertSucceeds(setDoc(doc(owner(), "config/shop"), { ...shop, logo: "brand/logo/3f9a1c0b7d2e4a55.jpg" }));
+    await assertFails(setDoc(doc(owner(), "config/shop"), { ...shop, logo: "https://example.com/logo.png" }));
+    await assertFails(setDoc(doc(owner(), "config/shop"), { ...shop, logo: "brand/logo/3f9a1c0b7d2e4a55.gif" }));
+    await assertFails(setDoc(doc(owner(), "config/shop"), { ...shop, logo: "brand/logo/3F9A1C0B7D2E4A55.png" }));
+    await assertFails(setDoc(doc(owner(), "config/shop"), { ...shop, logo: "products/as002/3f9a1c0b7d2e4a55.jpg" }));
+    // logoUrl lama tetap bisa disimpan.
+    await assertSucceeds(setDoc(doc(owner(), "config/shop"), { ...shop, logoUrl: "https://example.com/logo.png" }));
+    await assertFails(setDoc(doc(staffTkl(), "config/shop"), { ...shop, logo: "brand/logo/3f9a1c0b7d2e4a55.png", updatedBy: STAFF_TKL }));
+  });
+
   it("fitur: hanya boolean yang dikenal", async () => {
     const f = { multiBranch: true, weightSales: true, updatedBy: OWNER, updatedAt: NOW };
     await assertSucceeds(setDoc(doc(owner(), "settings/features"), f));
@@ -163,6 +175,8 @@ describe("config/shop dan settings/features", () => {
     await assertFails(setDoc(doc(owner(), "settings/features"), { ...f, receipt: "ya" }));
     await assertFails(setDoc(doc(owner(), "settings/features"), { ...f, qris: "ya" }));
     await assertFails(setDoc(doc(owner(), "settings/features"), { ...f, unknown: true }));
+    await assertSucceeds(setDoc(doc(owner(), "settings/features"), { ...f, productPhotos: false }));
+    await assertFails(setDoc(doc(owner(), "settings/features"), { ...f, productPhotos: "ya" }));
     await assertFails(setDoc(doc(staffTkl(), "settings/features"), { ...f, updatedBy: STAFF_TKL }));
   });
 });
@@ -209,6 +223,21 @@ describe("katalog", () => {
     await assertFails(setDoc(doc(owner(), "products/as002"), { ...product, stockMode: "magic" }));
     await assertFails(setDoc(doc(owner(), "products/as002"), { ...product, price: -1 }));
     await assertFails(setDoc(doc(staffTkl(), "products/as002"), product));
+  });
+
+  it("foto produk: key di folder produk itu sendiri, bukan URL atau produk lain", async () => {
+    const key = "products/as002/3f9a1c0b7d2e4a55.jpg";
+    await assertSucceeds(setDoc(doc(owner(), "products/as002"), { ...product, image: key }));
+    await assertFails(setDoc(doc(owner(), "products/as002"), { ...product, image: "products/as003/3f9a1c0b7d2e4a55.jpg" }));
+    await assertFails(setDoc(doc(owner(), "products/as002"), { ...product, image: "products/as002/3f9a1c0b7d2e4a55-t.jpg" }));
+    await assertFails(setDoc(doc(owner(), "products/as002"), { ...product, image: "products/as002/3f9a1c0b7d2e4a55.png" }));
+    await assertFails(setDoc(doc(owner(), "products/as002"), { ...product, image: "https://example.com/a.jpg" }));
+    await assertFails(setDoc(doc(owner(), "products/as002"), { ...product, image: "" }));
+    // Id dengan karakter regex tidak bisa membuat pola yang longgar.
+    await assertFails(
+      setDoc(doc(owner(), "products/a.b"), { ...product, id: "a.b", image: "products/axb/3f9a1c0b7d2e4a55.jpg" }),
+    );
+    await assertFails(setDoc(doc(staffTkl(), "products/as002"), { ...product, image: key }));
   });
 
   it("item stok tidak bisa dihapus (dipakai snapshot pesanan)", async () => {

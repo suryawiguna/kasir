@@ -2,10 +2,14 @@ import { Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Drawer, TRANSITION_MS } from "../components/Drawer";
+import { ImagePicker } from "../components/ImagePicker";
+import { ProductImage } from "../components/ProductImage";
 import { SelectMenu } from "../components/SelectMenu";
 import { Confirm, Field, RowChevron, SegmentedControl, Toggle } from "../components/ui";
 import type { ChoiceGroup, Consume, Product, StockItem, StockMode, Unit } from "../domain/types";
 import { deleteProduct, makeId, saveProduct } from "../features/catalog/catalogActions";
+import { isProductImageKeyFor } from "../features/media/imageKeys";
+import { uploadsEnabled } from "../features/media/uploadImage";
 import { formatRupiah, parseRupiahInput } from "../features/pricing/money";
 import { useShop } from "../features/shop/ShopContext";
 import { ownStockItemId } from "../features/stock/consumption";
@@ -49,6 +53,7 @@ export function ProductsSection() {
                 className="row-tap flex items-center gap-3"
                 onClick={() => setEditing({ product: p, isNew: false })}
               >
+                <ProductImage imageKey={p.image} name={p.name} className="h-10 w-10 rounded-lg" />
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-zinc-900">
                     {p.name}
@@ -277,6 +282,8 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
         : undefined,
       branchIds: draft.branchIds?.length ? draft.branchIds : undefined,
       priceByBranch: Object.keys(priceByBranch).length ? priceByBranch : undefined,
+      // URL lama (sebelum unggah ada) ditolak rules; dibuang supaya produk tetap bisa disimpan.
+      image: draft.image && isProductImageKeyFor(draft.image, draft.id) ? draft.image : undefined,
     };
     saveProduct(product, shared, stockItems, config.units);
     toast.success(`${product.name} disimpan`);
@@ -315,6 +322,16 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
       }
     >
       <div className="space-y-6">
+        {uploadsEnabled() && (
+          <Field group label="Foto" hint="Dipotong persegi di daftar kasir. Perubahan berlaku setelah Simpan.">
+            <ImagePicker
+              target={{ kind: "product", productId: draft.id }}
+              value={draft.image}
+              name={draft.name}
+              onChange={(key) => set("image", key)}
+            />
+          </Field>
+        )}
         <section className="grid gap-3 sm:grid-cols-2">
           <Field label="Nama">
             <input className="field-input" data-autofocus={isNew || undefined} value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="Produk A" />

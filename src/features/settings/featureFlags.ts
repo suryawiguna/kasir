@@ -18,7 +18,8 @@ export type FeatureName =
   | "kitchenTicket"
   | "events"
   | "cashCount"
-  | "proofPhotos";
+  | "proofPhotos"
+  | "productPhotos";
 
 export type FeatureFlags = Record<FeatureName, boolean>;
 
@@ -35,6 +36,7 @@ export const DEFAULT_FEATURES: FeatureFlags = {
   events: false,
   cashCount: false,
   proofPhotos: false,
+  productPhotos: true,
 };
 
 export const FEATURE_ORDER: readonly FeatureName[] = [
@@ -49,6 +51,7 @@ export const FEATURE_ORDER: readonly FeatureName[] = [
   "events",
   "cashCount",
   "proofPhotos",
+  "productPhotos",
 ];
 
 /**
@@ -68,6 +71,7 @@ export const FEATURE_INFO: Record<FeatureName, { label: string; detail: string; 
   events: { label: "Event", detail: "Tandai pesanan dengan event, mis. bazar.", ready: false },
   cashCount: { label: "Hitung kas", detail: "Hitung uang di laci tiap tutup.", ready: false },
   proofPhotos: { label: "Foto bukti transfer", detail: "Foto bukti saat bayar transfer atau QRIS.", ready: false },
+  productPhotos: { label: "Foto produk di kasir", detail: "Tampilkan foto produk di daftar kasir. Matikan untuk daftar yang lebih rapat.", ready: true },
 };
 
 /** Setiap flag jatuh ke default bila tidak ada atau bukan boolean. */

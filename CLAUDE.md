@@ -33,6 +33,7 @@ npm run build        # CLIENT=<slug> untuk klien lain (default demo)
 npm run set-admin -- --client <slug> <username> <kata-sandi> <owner|staff> [--branch <id>]
 npm run new-client -- <slug> "<Nama Toko>"
 npm run deploy -- --client <slug> | --all
+npm --prefix worker run dev       # Worker foto lokal di :8787 (salin worker/.dev.vars.example ke .dev.vars)
 ```
 
 Akun uji emulator (dari `clients/demo/seed.json`): `owner`, `kasir1` (cabang tkl), `kasir2` (cabang pkm), kata sandi `test1234`.
@@ -89,6 +90,17 @@ Menambah aturan di salah satunya = menambah tes. Tes yang merender komponen tida
 - Update aplikasi hanya saat kasir tidak sibuk (`setTillBusy`).
 - Tidak ada hapus pesanan dari aplikasi.
 
+### Foto produk dan logo (R2)
+
+Rencana dan alasan: [docs/IMAGES-PLAN.md](docs/IMAGES-PLAN.md).
+
+- Worker `kasir-media` di [worker/](worker/src/handler.ts), satu untuk semua klien, **satu bucket R2 per klien** (binding `BUCKET_<SLUG>` + entri `CLIENTS` di `wrangler.toml`, kunci = project id Firebase). Bukan Worker/bucket Haoshii.
+- Fitur unggah menyala bila `client.json` punya `workerUrl` (klien `demo` → `http://localhost:8787`). Tidak ada cek nama klien.
+- Firestore hanya menyimpan **key**, bukan URL: `products/{id}.image`, `config/shop.logo`. Pola key di [imageKeys.ts](src/features/media/imageKeys.ts), dipakai aplikasi dan Worker; regex yang sama di rules. `logoUrl` lama masih dibaca.
+- Nama file = hash isi, jadi cache `immutable` dan Workbox `CacheFirst` aman. `<img>` hanya di `ProductImage`/`ShopLogo`/`ImagePicker` (dicek `npm run lint`).
+- Unggah boleh di-`await` (butuh internet); simpan key ke Firestore tetap lewat `queueWrite` saat Simpan.
+- Uji lokal: emulator + `media-worker` + `kasir-demo` di `.claude/launch.json`. Unggah dari HP lewat IP LAN tidak jalan (`crypto.subtle` butuh https/localhost).
+
 ### Design system
 
 UI memakai design system Haoshii (komponen, token, Nunito, shell) dengan warna brand dari `config/shop.brandColor`. Aturannya di [docs/DESIGN.md](docs/DESIGN.md). Jangan menulis gaya tombol/field/overlay langsung di halaman; pakai class di `index.css` dan komponen di `src/components/`. Dropdown pakai `SelectMenu`, bukan `<select>`.
@@ -107,4 +119,5 @@ Allowlist field, deny-by-default, cap audit = email token, `updatedAt` wajib ber
 
 - Fase 0–3: selesai (fondasi, config/branding/auth/cabang, produk/satuan/stok, kasir + checkout offline).
 - Fase 4: sebagian. Ada daftar pesanan, detail, ubah status, terima pembayaran, batal (stok kembali dari snapshot), tandai belum bayar. **Belum:** Ubah Item, struk thermal/browser.
-- Fase 5–8: belum (analitik, ekspor CSV, unggah gambar via Worker R2, pelanggan sebagai dokumen, event, hitung kas, deploy per tag rilis, backup matrix).
+- Fase 6: foto produk dan logo lewat Worker R2 sudah ada di kode dan teruji lokal; belum di-deploy ke kasir-demo (IMAGES-PLAN G4).
+- Fase 5, 7, 8 dan sisa Fase 6: belum (analitik, ekspor CSV, pelanggan sebagai dokumen, event, hitung kas, deploy per tag rilis, backup matrix).

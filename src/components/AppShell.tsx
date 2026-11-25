@@ -1,16 +1,18 @@
 import { AlertCircle, Boxes, ClipboardList, LogOut, Settings, ShoppingCart, UserRound } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { CLIENT } from "../client";
 import { useAuth } from "../features/auth/AuthContext";
 import { emailToUsername } from "../features/auth/claims";
 import { useDevice } from "../features/device/DeviceContext";
 import { useBranch } from "../features/orders/BranchContext";
 import { useShop } from "../features/shop/ShopContext";
+import { useOnline } from "../features/ui/useOnline";
 import { stockLevelState } from "../features/stock/consumption";
 import { findUnit, formatQuantity } from "../features/units/units";
 import { cn } from "../lib/cn";
 import type { Route } from "../lib/route";
 import { ActionMenu } from "./ActionMenu";
+import { ShopLogo } from "./ShopLogo";
 import { bottomNavBoxClass, bottomNavItemClass, bottomNavLabelClass, CountBadge, navItemClass } from "./ui";
 
 const NAV: { route: Route; label: string; icon: typeof ShoppingCart; ownerOnly?: boolean }[] = [
@@ -19,21 +21,6 @@ const NAV: { route: Route; label: string; icon: typeof ShoppingCart; ownerOnly?:
   { route: "/stok", label: "Stok", icon: Boxes },
   { route: "/pengaturan", label: "Pengaturan", icon: Settings, ownerOnly: true },
 ];
-
-const useOnline = () => {
-  const [online, setOnline] = useState(() => navigator.onLine);
-  useEffect(() => {
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
-    window.addEventListener("online", on);
-    window.addEventListener("offline", off);
-    return () => {
-      window.removeEventListener("online", on);
-      window.removeEventListener("offline", off);
-    };
-  }, []);
-  return online;
-};
 
 /**
  * Shell dari Haoshii: di HP, isi + nav bawah (dengan menu Akun); dari `lg`,
@@ -89,13 +76,7 @@ export function AppShell({
             <aside className="hidden lg:flex flex-col gap-3 w-56 shrink-0 sticky top-0 z-40 self-start max-h-[calc(100dvh-2rem)]">
               <div className="card flex flex-col min-h-0">
                 <div className="shrink-0 flex flex-col items-center gap-2 px-4 pt-5 pb-4 text-center">
-                  {config.logoUrl ? (
-                    <img src={config.logoUrl} alt="" className="w-16 h-16 rounded-full object-cover" />
-                  ) : (
-                    <div className="flex w-16 h-16 items-center justify-center rounded-full bg-brand-500 text-2xl font-bold text-brand-fg">
-                      {config.name.slice(0, 1).toUpperCase()}
-                    </div>
-                  )}
+                  <ShopLogo logo={config.logo} legacyUrl={config.logoUrl} name={config.name} />
                   <h1 className="font-bold text-lg leading-tight text-zinc-900">{config.name}</h1>
                   {where && <span className="text-xs font-medium text-zinc-500">{where}</span>}
                   {!online && (

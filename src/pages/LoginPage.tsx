@@ -1,6 +1,7 @@
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { CLIENT } from "../client";
+import { ShopLogo } from "../components/ShopLogo";
 import { USE_EMULATOR } from "../data/firebase";
 import { useAuth } from "../features/auth/AuthContext";
 import { readBrand } from "../features/shop/brandCache";
@@ -43,13 +44,7 @@ export function LoginPage() {
     <div className="flex min-h-[100dvh] items-center justify-center bg-zinc-50 p-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          {brand?.logoUrl ? (
-            <img src={brand.logoUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
-          ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-500 text-2xl font-bold text-brand-fg">
-              {name.slice(0, 1).toUpperCase()}
-            </div>
-          )}
+          <ShopLogo logo={brand?.logo} legacyUrl={brand?.logoUrl} name={name} />
           <div>
             <h1 className="text-2xl font-bold text-zinc-900">{name}</h1>
             <p className="text-sm text-zinc-500">Masuk ke aplikasi kasir</p>

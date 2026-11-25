@@ -10,6 +10,7 @@ import { brandForeground, brandRamp } from "./shopConfig";
 export interface CachedBrand {
   name: string;
   brandColor: string;
+  logo?: string;
   logoUrl?: string;
 }
 
@@ -19,7 +20,12 @@ export const readBrand = (): CachedBrand | null => {
   try {
     const value = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<CachedBrand> | null;
     if (!value || typeof value.name !== "string" || typeof value.brandColor !== "string") return null;
-    return { name: value.name, brandColor: value.brandColor, logoUrl: typeof value.logoUrl === "string" ? value.logoUrl : undefined };
+    return {
+      name: value.name,
+      brandColor: value.brandColor,
+      logo: typeof value.logo === "string" ? value.logo : undefined,
+      logoUrl: typeof value.logoUrl === "string" ? value.logoUrl : undefined,
+    };
   } catch {
     return null;
   }

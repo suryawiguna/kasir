@@ -8,7 +8,7 @@
     "dev:test": "VITE_USE_EMULATOR=true vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "tsc --noEmit && node scripts/check-paths.mjs",
+    "lint": "tsc --noEmit && tsc --noEmit -p worker && node scripts/check-paths.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:rules": "npx --yes firebase-tools@15 emulators:exec --only firestore --project demo-kasir \"vitest run --config vitest.rules.config.ts\"",

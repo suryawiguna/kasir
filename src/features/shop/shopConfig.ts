@@ -1,4 +1,5 @@
 import type { PaperWidth, ShopConfig, StockPolicy, Timezone, Unit } from "../../domain/types";
+import { isLogoKey } from "../media/imageKeys";
 import { PRESET_UNITS } from "../units/units";
 
 /**
@@ -51,6 +52,7 @@ export const parseShopConfig = (data: unknown, fallbackName: string): ShopConfig
   const receipt = (d.receipt && typeof d.receipt === "object" ? d.receipt : {}) as Record<string, unknown>;
   return {
     name: typeof d.name === "string" && d.name.trim() ? d.name : base.name,
+    logo: typeof d.logo === "string" && isLogoKey(d.logo) ? d.logo : undefined,
     logoUrl: typeof d.logoUrl === "string" && d.logoUrl ? d.logoUrl : undefined,
     brandColor: typeof d.brandColor === "string" && HEX.test(d.brandColor) ? d.brandColor : base.brandColor,
     units: units.length ? units : base.units,

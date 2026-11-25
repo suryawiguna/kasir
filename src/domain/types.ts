@@ -47,6 +47,9 @@ export type PaperWidth = 32 | 48;
 
 export interface ShopConfig {
   name: string;
+  /** Key R2 logo unggahan (`brand/logo/<hash>.png`), lihat features/media/imageKeys.ts. */
+  logo?: string;
+  /** Lama: URL logo yang diketik sebelum unggah ada. Masih dibaca bila `logo` kosong. */
   logoUrl?: string;
   brandColor: string;
   units: Unit[];
@@ -157,6 +160,7 @@ export interface Product {
   branchIds?: string[];
   priceByBranch?: Record<string, number>;
   /** Key R2, bukan bytes. */
+  /** Key R2 foto (`products/<id>/<hash>.jpg`), bukan URL. Lihat features/media/imageKeys.ts. */
   image?: string;
   active: boolean;
   order: number;
