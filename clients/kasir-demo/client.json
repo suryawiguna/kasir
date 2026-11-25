@@ -4,7 +4,7 @@
   "shortName": "Toko Demo",
   "usernameDomain": "kasir-demo.local",
   "hostingUrl": "https://kasir-demo.web.app",
-  "workerUrl": "",
+  "workerUrl": "https://kasir-media.suryawigunaa.workers.dev",
   "firebase": {
     "apiKey": "AIzaSyAob6APmdELpDKyXvz3-QmmreKrq1vcPIY",
     "authDomain": "kasir-demo.firebaseapp.com",
