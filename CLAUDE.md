@@ -61,6 +61,8 @@ Auth → claims (`accessProblem`) → `ShopProvider` (config, fitur, cabang, kat
 - `stockItems` (barang yang dihitung) terpisah dari `products` (barang yang dijual). `product.consumes` = item stok per 1 satuan jual. `stockMode`: `own` (item stok `own-<productId>` dibuat otomatis), `shared`, `none`.
 - `choiceGroups`: paket "pilih 3 ayam", varian, level pedas. Opsi punya `consumes` dan `priceDelta` sendiri.
 - `inventory/{branchId}`: satu dokumen per cabang, `levels` map, selalu `increment()` (lewat `FieldPath('levels', id)`).
+- Bagian form produk diatur dari Pengaturan → Fitur → Produk (`stockTracking`, `weightSales`, `bundles`, `freeItems`, `branchPricing`, `sku`). Mematikan = form menyembunyikan bagian itu (kecuali produk yang sudah berisi) dan kasir memakai `tillProduct()` di [cart.ts](src/features/pos/cart.ts), yang memangkas stok/harga cabang/bonus dari salinan kasir. Data produk tidak pernah dihapus.
+- Urutan kasir = `product.order`, diatur dari daftar produk → Atur urutan (geser atau panah, per kategori lewat [reorder.ts](src/features/catalog/reorder.ts)). Tidak ada input angka urutan.
 - **Setiap baris pesanan menyimpan snapshot `consumed`.** Batal dan Ubah Item memakai snapshot, bukan produk saat ini, jadi pemilik bebas mengganti mode stok/isi paket.
 
 ### Modul murni yang dites (di sinilah uang dan stok)

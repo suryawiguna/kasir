@@ -2,7 +2,17 @@ import { describe, expect, it } from "vitest";
 import type { Product } from "../../domain/types";
 import { PRESET_UNITS } from "../units/units";
 import { buildOrder, collectPaymentPatch, filterByBranch } from "../orders/buildOrder";
-import { addToCart, cartProblem, cashSuggestions, isSoldAtBranch, priceCart, sellableProducts, stepLine, toOrderLines } from "./cart";
+import {
+  addToCart,
+  cartProblem,
+  cashSuggestions,
+  isSoldAtBranch,
+  priceCart,
+  sellableProducts,
+  stepLine,
+  tillProduct,
+  toOrderLines,
+} from "./cart";
 
 const p = (over: Partial<Product> & Pick<Product, "id">): Product => ({
   name: over.id,
@@ -113,6 +123,39 @@ describe("cart", () => {
     expect(ids({})).toEqual(["ayam40", "kaki", "paket"]);
     expect(ids({ hiddenCategoryIds: new Set() })).toEqual(["ayam40", "kaki", "paket", "x"]);
     expect(ids({ weightSales: false, bundles: false })).toEqual(["ayam40"]);
+  });
+
+  it("fitur produk yang mati berhenti berlaku di kasir tanpa mengubah produk asli", () => {
+    const on = { stockTracking: true, branchPricing: true, freeItems: true };
+    const cabang = p({ id: "cabang", price: 40000, priceByBranch: { tkl: 45000 } });
+    expect(tillProduct(promo, on)).toBe(promo);
+
+    // Hitung stok mati: tidak ada konsumsi, termasuk opsi paket dan bonus.
+    const noStock = new Map([ayam, hati, promo, paket].map((x) => [x.id, tillProduct(x, { ...on, stockTracking: false })]));
+    const noStockCatalog = { ...catalog, productsById: noStock };
+    const cart = addToCart(
+      addToCart([], noStock.get("promo")!, 1),
+      noStock.get("paket")!,
+      1,
+      [{ groupId: "g", optionId: "u40", label: "40K", count: 3 }],
+    );
+    const priced = priceCart(cart, noStockCatalog);
+    expect(priced.map((l) => l.consumed)).toEqual([[], []]);
+    expect(promo.consumes).toEqual([{ stockItemId: "ayam", qty: 1 }]);
+    expect(paket.choiceGroups![0].options[0].consumes).toEqual([{ stockItemId: "ayam40", qty: 1 }]);
+
+    // Harga per cabang mati: harga dasar.
+    const priceOf = (x: Product) => priceCart(addToCart([], x, 1), { ...catalog, productsById: new Map([[x.id, x]]) })[0].price;
+    expect(priceOf(cabang)).toBe(45000);
+    expect(priceOf(tillProduct(cabang, { ...on, branchPricing: false }))).toBe(40000);
+    expect(cabang.priceByBranch).toEqual({ tkl: 45000 });
+
+    // Bonus mati: tidak ada bonus di pesanan dan stoknya tidak terpotong.
+    const noBonus = new Map([hati, promo].map((x) => [x.id, tillProduct(x, { ...on, freeItems: false })]));
+    const lines = toOrderLines(priceCart(addToCart([], noBonus.get("promo")!, 1), { ...catalog, productsById: noBonus }), noBonus, () => "l1");
+    expect(lines[0].freeItems).toBeUndefined();
+    expect(lines[0].consumed).toEqual([{ stockItemId: "ayam", qty: 1 }]);
+    expect(promo.freeItems).toEqual([{ productId: "hati", qty: 1 }]);
   });
 
   it("saran uang tunai", () => {

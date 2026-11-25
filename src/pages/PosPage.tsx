@@ -27,7 +27,7 @@ import { cn } from "../lib/cn";
  */
 export default function PosPage() {
   const pos = usePosState();
-  const { categories, config } = useShop();
+  const { categories, config, features } = useShop();
   const { branch, inventoryMissing } = useBranch();
   const isDesktop = useIsDesktop();
   const [category, setCategory] = useState("all");
@@ -96,7 +96,7 @@ export default function PosPage() {
             atau menjalankan seed.
           </p>
         )}
-        <StockStrip />
+        {features.stockTracking && <StockStrip />}
         {usedCategories.length > 1 && (
           <SegmentedControl
             scrollable

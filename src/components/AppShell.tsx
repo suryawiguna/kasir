@@ -44,7 +44,8 @@ export function AppShell({
   const { claims, user, logout } = useAuth();
   const online = useOnline();
   const isOwner = claims?.role === "owner";
-  const items = NAV.filter((n) => !n.ownerOnly || isOwner);
+  const { features } = useShop();
+  const items = NAV.filter((n) => (!n.ownerOnly || isOwner) && (n.route !== "/stok" || features.stockTracking));
   const username = emailToUsername(user?.email, CLIENT.usernameDomain);
   const where = branch ? `${branches.length > 1 ? `${branch.name} · ` : ""}Perangkat ${setup?.deviceLetter}` : "";
 
@@ -113,7 +114,7 @@ export function AppShell({
                   />
                 </nav>
               </div>
-              <StockList onOpen={() => navigate("/stok")} />
+              {features.stockTracking && <StockList onOpen={() => navigate("/stok")} />}
             </aside>
 
             <main className="flex-1 min-w-0">

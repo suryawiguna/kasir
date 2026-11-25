@@ -125,7 +125,8 @@ service cloud.firestore {
 
     function isValidFeatures(data) {
       return hasOnly(data, ['multiBranch', 'receipt', 'weightSales', 'bundles', 'preorder', 'customers', 'transfer', 'qris',
-          'kitchenTicket', 'events', 'cashCount', 'proofPhotos', 'productPhotos', 'updatedBy', 'updatedAt']) &&
+          'kitchenTicket', 'events', 'cashCount', 'proofPhotos', 'productPhotos', 'stockTracking', 'freeItems', 'branchPricing',
+          'sku', 'updatedBy', 'updatedAt']) &&
         (!('multiBranch' in data) || data.multiBranch is bool) &&
         (!('receipt' in data) || data.receipt is bool) &&
         (!('weightSales' in data) || data.weightSales is bool) &&
@@ -139,6 +140,10 @@ service cloud.firestore {
         (!('cashCount' in data) || data.cashCount is bool) &&
         (!('proofPhotos' in data) || data.proofPhotos is bool) &&
         (!('productPhotos' in data) || data.productPhotos is bool) &&
+        (!('stockTracking' in data) || data.stockTracking is bool) &&
+        (!('freeItems' in data) || data.freeItems is bool) &&
+        (!('branchPricing' in data) || data.branchPricing is bool) &&
+        (!('sku' in data) || data.sku is bool) &&
         stampedByMe(data);
     }
 

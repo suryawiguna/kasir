@@ -1,5 +1,5 @@
-import { Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowUpDown, Check, ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "sonner";
 import { Drawer, TRANSITION_MS } from "../components/Drawer";
 import { ImagePicker } from "../components/ImagePicker";
@@ -7,11 +7,13 @@ import { ProductImage } from "../components/ProductImage";
 import { SelectMenu } from "../components/SelectMenu";
 import { Confirm, Field, RowChevron, SegmentedControl, Toggle } from "../components/ui";
 import type { ChoiceGroup, Consume, Product, StockItem, StockMode, Unit } from "../domain/types";
-import { deleteProduct, makeId, saveProduct } from "../features/catalog/catalogActions";
+import { deleteProduct, makeId, saveProduct, saveProductOrder } from "../features/catalog/catalogActions";
+import { moveId, reorderWithin } from "../features/catalog/reorder";
 import { isProductImageKeyFor } from "../features/media/imageKeys";
 import { uploadsEnabled } from "../features/media/uploadImage";
 import { formatRupiah, parseRupiahInput } from "../features/pricing/money";
 import { useShop } from "../features/shop/ShopContext";
+import { cn } from "../lib/cn";
 import { ownStockItemId } from "../features/stock/consumption";
 import { findUnit, formatQuantity, formatUnitNumber, parseQuantityInput } from "../features/units/units";
 
@@ -22,9 +24,19 @@ import { findUnit, formatQuantity, formatUnitNumber, parseQuantityInput } from "
  * Mengganti pilihan ini aman kapan saja: pesanan lama menyimpan snapshot.
  */
 export function ProductsSection() {
-  const { products, categories, config, branches } = useShop();
+  const { products, categories, config, branches, features } = useShop();
   const [editing, setEditing] = useState<{ product: Product; isNew: boolean } | null>(null);
+  const [sorting, setSorting] = useState(false);
+  const [category, setCategory] = useState("all");
   const categoryName = (id?: string) => categories.find((c) => c.id === id)?.name;
+
+  const usedCategories = categories.filter((c) => products.some((p) => p.categoryId === c.id));
+  const filterOptions = [
+    { value: "all", label: "Semua" },
+    ...usedCategories.map((c) => ({ value: c.id, label: c.name })),
+    ...(products.some((p) => !p.categoryId) && usedCategories.length ? [{ value: "", label: "Tanpa kategori" }] : []),
+  ];
+  const shown = category === "all" ? products : products.filter((p) => (p.categoryId ?? "") === category);
 
   const blank = (): Product => ({
     id: makeId("products"),
@@ -32,22 +44,79 @@ export function ProductsSection() {
     price: 0,
     unit: config.units.find((u) => !u.hidden)?.code ?? "pcs",
     soldBy: "count",
-    stockMode: "shared",
+    stockMode: features.stockTracking ? "shared" : "none",
     consumes: [],
+    // Produk baru masuk di akhir kategorinya (atau di akhir daftar).
+    categoryId: category !== "all" && category ? category : undefined,
     active: true,
-    order: products.length,
+    order: products.reduce((max, p) => Math.max(max, p.order + 1), 0),
   });
+
+  /** Urutan baru untuk produk yang tampil, diterapkan ke daftar penuh. */
+  const applyOrder = (subsetIds: string[]) =>
+    saveProductOrder(
+      products,
+      reorderWithin(
+        products.map((p) => p.id),
+        subsetIds,
+      ),
+    );
+
+  const meta = (p: Product) =>
+    [
+      features.sku || p.sku ? p.sku : null,
+      categoryName(p.categoryId),
+      `${formatRupiah(p.price)}/${findUnit(config.units, p.unit).label}`,
+      features.stockTracking ? STOCK_MODE_SHORT[p.stockMode] : null,
+      p.choiceGroups?.length ? `${p.choiceGroups.length} grup pilihan` : null,
+      p.branchIds?.length && branches.length > 1
+        ? `hanya ${p.branchIds.map((id) => branches.find((b) => b.id === id)?.code ?? id).join(", ")}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
 
   return (
     <div className="space-y-2">
-      <button className="btn-secondary w-full" onClick={() => setEditing({ product: blank(), isNew: true })}>
-        <Plus size={16} /> Tambah produk
-      </button>
-      {products.length === 0 ? (
+      <div className="flex gap-2">
+        {!sorting && (
+          <button className="btn-secondary flex-1" onClick={() => setEditing({ product: blank(), isNew: true })}>
+            <Plus size={16} /> Tambah produk
+          </button>
+        )}
+        {products.length > 1 && (
+          <button
+            className={sorting ? "btn-primary flex-1" : "btn-secondary"}
+            onClick={() => setSorting((v) => !v)}
+            aria-pressed={sorting}
+          >
+            {sorting ? (
+              <>
+                <Check size={16} /> Selesai
+              </>
+            ) : (
+              <>
+                <ArrowUpDown size={16} /> Atur urutan
+              </>
+            )}
+          </button>
+        )}
+      </div>
+      {filterOptions.length > 2 && (
+        <SegmentedControl scrollable value={category} onChange={setCategory} options={filterOptions} />
+      )}
+      {sorting && (
+        <p className="field-hint">
+          Geser pegangan atau pakai tombol panah. Urutan ini yang tampil di kasir, langsung tersimpan.
+        </p>
+      )}
+      {shown.length === 0 ? (
         <p className="card p-6 text-center text-sm text-zinc-500">Belum ada produk.</p>
+      ) : sorting ? (
+        <SortableProducts products={shown} meta={meta} onReorder={applyOrder} />
       ) : (
         <ul className="card divide-y divide-zinc-100 overflow-hidden">
-          {products.map((p) => (
+          {shown.map((p) => (
             <li key={p.id}>
               <button
                 className="row-tap flex items-center gap-3"
@@ -59,20 +128,7 @@ export function ProductsSection() {
                     {p.name}
                     {!p.active && <span className="pill ml-2 bg-zinc-100 text-zinc-500">Nonaktif</span>}
                   </p>
-                  <p className="text-sm text-zinc-500">
-                    {[
-                      p.sku,
-                      categoryName(p.categoryId),
-                      `${formatRupiah(p.price)}/${findUnit(config.units, p.unit).label}`,
-                      STOCK_MODE_SHORT[p.stockMode],
-                      p.choiceGroups?.length ? `${p.choiceGroups.length} grup pilihan` : null,
-                      p.branchIds?.length && branches.length > 1
-                        ? `hanya ${p.branchIds.map((id) => branches.find((b) => b.id === id)?.code ?? id).join(", ")}`
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
+                  <p className="text-sm text-zinc-500">{meta(p)}</p>
                 </div>
                 <RowChevron />
               </button>
@@ -82,6 +138,139 @@ export function ProductsSection() {
       )}
       {editing && <ProductEditor key={editing.product.id} initial={editing.product} isNew={editing.isNew} onClose={() => setEditing(null)} />}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Atur urutan: geser pegangan atau tombol panah                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Daftar yang bisa diurutkan. Selama digeser, urutan sementara disimpan di
+ * state lokal supaya baris lain langsung bergeser; dilepas = satu write.
+ * Pointer events (bukan drag-and-drop HTML) supaya jalan di layar sentuh.
+ */
+function SortableProducts({
+  products,
+  meta,
+  onReorder,
+}: {
+  products: Product[];
+  meta: (p: Product) => string;
+  onReorder: (ids: string[]) => void;
+}) {
+  const listRef = useRef<HTMLUListElement>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string[] | null>(null);
+  const byId = new Map(products.map((p) => [p.id, p]));
+  const saved = products.map((p) => p.id);
+  const ids = (preview ?? saved).filter((id) => byId.has(id));
+  // Pointer events bisa datang lebih cepat dari render: handler membaca ref, bukan state.
+  const drag = useRef<{ id: string; ids: string[] } | null>(null);
+
+  // Urutan sementara dilepas begitu snapshot membawa urutan yang baru disimpan.
+  const savedKey = saved.join("|");
+  useEffect(() => {
+    if (!dragId) setPreview(null);
+  }, [savedKey, dragId]);
+
+  const commit = (next: string[]) => {
+    if (next.join("|") === savedKey) {
+      setPreview(null);
+      return;
+    }
+    setPreview(next);
+    onReorder(next);
+  };
+
+  const onPointerMove = (e: ReactPointerEvent) => {
+    const current = drag.current;
+    if (!current || !listRef.current) return;
+    const rows = [...listRef.current.querySelectorAll<HTMLElement>("[data-sort-id]")];
+    // Posisi baru = jumlah baris lain yang titik tengahnya di atas jari.
+    const to = rows.filter((row) => {
+      if (row.dataset.sortId === current.id) return false;
+      const box = row.getBoundingClientRect();
+      return box.top + box.height / 2 < e.clientY;
+    }).length;
+    const next = moveId(current.ids, current.id, to);
+    if (next.join("|") !== current.ids.join("|")) {
+      current.ids = next;
+      setPreview(next);
+    }
+  };
+
+  const endDrag = () => {
+    const current = drag.current;
+    if (!current) return;
+    drag.current = null;
+    setDragId(null);
+    commit(current.ids);
+  };
+
+  return (
+    <ul ref={listRef} className="card divide-y divide-zinc-100 overflow-hidden">
+      {ids.map((id, i) => {
+        const p = byId.get(id)!;
+        const dragging = dragId === id;
+        return (
+          <li
+            key={id}
+            data-sort-id={id}
+            className={cn("flex items-center gap-2 py-2 pl-1 pr-2 bg-white transition-colors", dragging && "bg-brand-50 relative z-10 shadow-md")}
+          >
+            <button
+              type="button"
+              className="btn-ghost h-11 w-9 shrink-0 cursor-grab touch-none px-0 active:cursor-grabbing"
+              aria-label={`Geser ${p.name}`}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                try {
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                } catch {
+                  // Pointer sudah lepas; geser tetap jalan selama jari di atas pegangan.
+                }
+                drag.current = { id, ids };
+                setDragId(id);
+                setPreview(ids);
+              }}
+              onPointerMove={onPointerMove}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+            >
+              <GripVertical size={18} />
+            </button>
+            <span className="w-6 shrink-0 text-right text-sm tabular-nums text-zinc-400">{i + 1}</span>
+            <ProductImage imageKey={p.image} name={p.name} className="h-9 w-9 shrink-0 rounded-lg" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-bold text-zinc-900">
+                {p.name}
+                {!p.active && <span className="pill ml-2 bg-zinc-100 text-zinc-500">Nonaktif</span>}
+              </p>
+              <p className="truncate text-sm text-zinc-500">{meta(p)}</p>
+            </div>
+            <button
+              type="button"
+              className="btn-ghost h-9 w-9 shrink-0 px-0"
+              aria-label={`Naikkan ${p.name}`}
+              disabled={i === 0}
+              onClick={() => commit(moveId(ids, id, i - 1))}
+            >
+              <ChevronUp size={18} />
+            </button>
+            <button
+              type="button"
+              className="btn-ghost h-9 w-9 shrink-0 px-0"
+              aria-label={`Turunkan ${p.name}`}
+              disabled={i === ids.length - 1}
+              onClick={() => commit(moveId(ids, id, i + 1))}
+            >
+              <ChevronDown size={18} />
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -212,11 +401,16 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
   const set = <K extends keyof Product>(k: K, v: Product[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const ownItem = stockItems.find((s) => s.id === ownStockItemId(draft.id));
   const showBundles = features.bundles || groups.length > 0;
+  // Bagian form mengikuti Pengaturan → Fitur; data yang sudah terisi tetap tampil supaya tidak hilang diam-diam.
+  const trackStock = features.stockTracking;
+  const showSku = features.sku || Boolean(initial.sku);
+  const showBonus = features.freeItems || Boolean(initial.freeItems?.length);
+  const showBranchPrices = features.branchPricing || Object.keys(initial.priceByBranch ?? {}).length > 0;
   const freeCandidates = useMemo(() => products.filter((p) => p.id !== draft.id), [products, draft.id]);
   // Item "stok sendiri" menyimpan jumlah dalam satuan dasar satuan jual. Satuan
   // dengan faktor lain (pcs → kg) akan membaca stok yang ada dengan skala salah.
   const ownUnit = ownItem ? findUnit(config.units, ownItem.unit) : null;
-  const ownUnitClash = draft.stockMode === "own" && ownUnit !== null && ownUnit.factor !== unit.factor;
+  const ownUnitClash = features.stockTracking && draft.stockMode === "own" && ownUnit !== null && ownUnit.factor !== unit.factor;
 
   /** Tutup dengan animasi, lalu lepas editor (pola yang sama dengan editor lain). */
   const close = () => {
@@ -336,9 +530,11 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
           <Field label="Nama">
             <input className="field-input" data-autofocus={isNew || undefined} value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="Produk A" />
           </Field>
-          <Field label="SKU (opsional)">
-            <input className="field-input" value={draft.sku ?? ""} onChange={(e) => set("sku", e.target.value)} />
-          </Field>
+          {showSku && (
+            <Field label="SKU (opsional)">
+              <input className="field-input" value={draft.sku ?? ""} onChange={(e) => set("sku", e.target.value)} />
+            </Field>
+          )}
           <Field group label="Kategori">
             <SelectMenu
               label="Kategori"
@@ -377,31 +573,33 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
           </Field>
         </section>
 
-        <section className="space-y-3">
-          <h3 className="section-title">Cara hitung stok</h3>
-          <SegmentedControl
-                className="w-full"
-            value={draft.stockMode}
-            onChange={(v) => set("stockMode", v)}
-            options={[
-              { value: "own", label: "Stok sendiri" },
-              { value: "shared", label: "Pakai stok bersama" },
-              { value: "none", label: "Tidak dilacak" },
-            ]}
-          />
-          {draft.stockMode === "own" && (
-            <p className="rounded-xl bg-zinc-50 p-3 text-sm text-zinc-600">
-              Produk ini punya item stok sendiri ({ownItem ? `"${ownItem.name}"` : "dibuat saat disimpan"}), dalam {unit.label}.
-              Isi jumlahnya di tab Stok.
-            </p>
-          )}
-          {draft.stockMode === "shared" && <ConsumeRows rows={rows} onChange={setRows} perLabel={perLabel} />}
-          {draft.stockMode === "none" && (
-            <p className="rounded-xl bg-zinc-50 p-3 text-sm text-zinc-600">
-              Produk ini tidak memotong stok.{groups.length ? " Opsi pilihan di bawah tetap memotong stok sesuai isinya." : ""}
-            </p>
-          )}
-        </section>
+        {trackStock && (
+          <section className="space-y-3">
+            <h3 className="section-title">Cara hitung stok</h3>
+            <SegmentedControl
+              className="w-full"
+              value={draft.stockMode}
+              onChange={(v) => set("stockMode", v)}
+              options={[
+                { value: "own", label: "Stok sendiri" },
+                { value: "shared", label: "Pakai stok bersama" },
+                { value: "none", label: "Tidak dilacak" },
+              ]}
+            />
+            {draft.stockMode === "own" && (
+              <p className="rounded-xl bg-zinc-50 p-3 text-sm text-zinc-600">
+                Produk ini punya item stok sendiri ({ownItem ? `"${ownItem.name}"` : "dibuat saat disimpan"}), dalam {unit.label}.
+                Isi jumlahnya di tab Stok.
+              </p>
+            )}
+            {draft.stockMode === "shared" && <ConsumeRows rows={rows} onChange={setRows} perLabel={perLabel} />}
+            {draft.stockMode === "none" && (
+              <p className="rounded-xl bg-zinc-50 p-3 text-sm text-zinc-600">
+                Produk ini tidak memotong stok.{groups.length ? " Opsi pilihan di bawah tetap memotong stok sesuai isinya." : ""}
+              </p>
+            )}
+          </section>
+        )}
 
         {showBundles && (
           <section className="space-y-3">
@@ -418,6 +616,7 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
               <GroupEditor
                 key={g.id}
                 group={g}
+                trackStock={trackStock}
                 onChange={(next) => setGroups((all) => all.map((x, i) => (i === gi ? next : x)))}
                 onRemove={() => setGroups((all) => all.filter((_, i) => i !== gi))}
               />
@@ -425,7 +624,7 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
           </section>
         )}
 
-        {freeCandidates.length > 0 && (
+        {showBonus && freeCandidates.length > 0 && (
           <section className="space-y-2">
             <h3 className="section-title">Bonus gratis</h3>
             {(draft.freeItems ?? []).map((f, i) => (
@@ -453,7 +652,10 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
             <button className="btn-ghost btn-sm" onClick={() => set("freeItems", [...(draft.freeItems ?? []), { productId: "", qty: 1 }])}>
               <Plus size={14} /> Tambah bonus
             </button>
-            <p className="field-hint">Per 1 {unit.label} terjual. Stok bonus ikut terpotong dan tercatat di pesanan.</p>
+            <p className="field-hint">
+              Per 1 {unit.label} terjual. {trackStock ? "Stok bonus ikut terpotong dan tercatat di pesanan." : "Tercatat di pesanan."}
+              {!features.freeItems && " Bonus gratis sedang dimatikan di Pengaturan → Fitur, jadi tidak berlaku di kasir."}
+            </p>
           </section>
         )}
 
@@ -478,33 +680,36 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
                     />
                     {b.name}
                   </label>
-                  <input
-                    className="field-input w-36 text-right tabular-nums"
-                    inputMode="numeric"
-                    placeholder={priceText ? `${formatRupiah(parseRupiahInput(priceText) ?? 0)}` : "Harga"}
-                    value={branchPrices[b.id] ?? ""}
-                    disabled={!sold}
-                    onChange={(e) => setBranchPrices((p) => ({ ...p, [b.id]: e.target.value }))}
-                  />
+                  {showBranchPrices && (
+                    <input
+                      className="field-input w-36 text-right tabular-nums"
+                      inputMode="numeric"
+                      placeholder={priceText ? `${formatRupiah(parseRupiahInput(priceText) ?? 0)}` : "Harga"}
+                      value={branchPrices[b.id] ?? ""}
+                      disabled={!sold}
+                      onChange={(e) => setBranchPrices((p) => ({ ...p, [b.id]: e.target.value }))}
+                    />
+                  )}
                 </div>
               );
             })}
-            <p className="field-hint">Kosongkan harga cabang untuk memakai harga dasar.</p>
+            <p className="field-hint">
+              {showBranchPrices ? "Centang cabang yang menjual produk ini. Kosongkan harga cabang untuk memakai harga dasar." : "Centang cabang yang menjual produk ini."}
+              {showBranchPrices && !features.branchPricing && " Harga per cabang sedang dimatikan di Pengaturan → Fitur, jadi semua cabang memakai harga dasar."}
+            </p>
           </section>
         )}
 
-        <section className="grid gap-3 sm:grid-cols-2">
-          <Field label="Urutan di kasir">
-            <input className="field-input" type="number" value={draft.order} onChange={(e) => set("order", Number(e.target.value) || 0)} />
-          </Field>
-          <div className="pt-5">
-            <Toggle label="Aktif (tampil di kasir)" checked={draft.active} onChange={(v) => set("active", v)} />
-          </div>
-        </section>
+        <Toggle
+          label="Aktif (tampil di kasir)"
+          detail="Urutan di kasir diatur dari daftar produk → Atur urutan."
+          checked={draft.active}
+          onChange={(v) => set("active", v)}
+        />
 
         {!isNew && (
           <p className="field-hint">
-            Mengubah harga, mode stok, atau isi paket berlaku untuk penjualan berikutnya. Pesanan lama tidak berubah.
+            Mengubah harga{trackStock ? ", mode stok," : ""} atau isi paket berlaku untuk penjualan berikutnya. Pesanan lama tidak berubah.
           </p>
         )}
       </div>
@@ -527,10 +732,12 @@ function ProductEditor({ initial, isNew, onClose }: { initial: Product; isNew: b
 
 function GroupEditor({
   group,
+  trackStock,
   onChange,
   onRemove,
 }: {
   group: GroupDraft;
+  trackStock: boolean;
   onChange: (g: GroupDraft) => void;
   onRemove: () => void;
 }) {
@@ -596,8 +803,10 @@ function GroupEditor({
                 <Trash2 size={16} />
               </button>
             </div>
-            <ConsumeRows rows={o.rows} onChange={(rows) => setOption(i, { rows })} perLabel="kali dipilih" addLabel="Potong item stok" />
-            {o.rows.length > 0 && o.rows.every((r) => r.stockItemId) && (
+            {trackStock && (
+              <ConsumeRows rows={o.rows} onChange={(rows) => setOption(i, { rows })} perLabel="kali dipilih" addLabel="Potong item stok" />
+            )}
+            {trackStock && o.rows.length > 0 && o.rows.every((r) => r.stockItemId) && (
               <p className="text-xs text-zinc-500">
                 {o.rows
                   .map((r) => {
@@ -622,9 +831,11 @@ function GroupEditor({
         >
           <Plus size={14} /> Opsi
         </button>
-        <button className="btn-ghost btn-sm" onClick={fillFromStock}>
-          <Plus size={14} /> Satu opsi per item stok
-        </button>
+        {trackStock && (
+          <button className="btn-ghost btn-sm" onClick={fillFromStock}>
+            <Plus size={14} /> Satu opsi per item stok
+          </button>
+        )}
       </div>
     </div>
   );

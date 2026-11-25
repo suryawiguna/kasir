@@ -48,6 +48,39 @@ export const sellableProducts = <P extends Product>(products: readonly P[], f: T
       (f.bundles || !p.choiceGroups?.length),
   );
 
+/** Fitur produk yang menentukan bagaimana kasir memakai data produk. */
+export interface TillProductFlags {
+  stockTracking: boolean;
+  branchPricing: boolean;
+  freeItems: boolean;
+}
+
+/**
+ * Produk seperti yang dipakai kasir. Fitur yang dimatikan pemilik berhenti
+ * berlaku tanpa menghapus datanya: produk di database tetap utuh (dan form
+ * produk tetap menyimpannya), hanya salinan untuk kasir yang dipangkas.
+ * - Hitung stok mati: tidak ada konsumsi, termasuk dari opsi pilihan.
+ * - Harga per cabang mati: semua cabang memakai harga dasar.
+ * - Bonus gratis mati: tidak ada bonus.
+ */
+export const tillProduct = (product: Product, f: TillProductFlags): Product => {
+  if (f.stockTracking && f.branchPricing && f.freeItems) return product;
+  const next: Product = { ...product };
+  if (!f.stockTracking) {
+    next.stockMode = "none";
+    next.consumes = [];
+    if (next.choiceGroups) {
+      next.choiceGroups = next.choiceGroups.map((g) => ({
+        ...g,
+        options: g.options.map(({ consumes: _drop, ...o }) => o),
+      }));
+    }
+  }
+  if (!f.branchPricing) delete next.priceByBranch;
+  if (!f.freeItems) delete next.freeItems;
+  return next;
+};
+
 /**
  * Tambah ke keranjang. Baris dengan produk dan pilihan yang sama digabung,
  * kecuali produk per berat: setiap timbangan jadi baris sendiri supaya struk

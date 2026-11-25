@@ -15,7 +15,17 @@ import { setTillBusy } from "../pwa/appUpdate";
 import { useShop } from "../shop/ShopContext";
 import { consumptionForLine, findShortages, fitsInStock, totalConsumed, type Shortage } from "../stock/consumption";
 import { findUnit, stepBase } from "../units/units";
-import { addToCart, cartProblem, priceCart, sellableProducts, setLineQuantity, stepLine, toOrderLines, type CartLine } from "./cart";
+import {
+  addToCart,
+  cartProblem,
+  priceCart,
+  sellableProducts,
+  setLineQuantity,
+  stepLine,
+  tillProduct,
+  toOrderLines,
+  type CartLine,
+} from "./cart";
 
 export interface CheckoutRequest {
   orderType: OrderType;
@@ -48,12 +58,20 @@ const loadDraft = (branchId: string): CartLine[] => {
  * consumption.ts.
  */
 export function usePosState() {
-  const { config, features, categories, products, productsById, stockItems } = useShop();
+  const { config, features, categories, products: shopProducts, stockItems } = useShop();
   const { setup } = useDevice();
   const { branch, inventory, orders, isCheckoutReady } = useBranch();
   const { user } = useAuth();
   const branchId = setup?.branchId ?? "";
   const [cart, setCart] = useState<CartLine[]>(() => loadDraft(branchId));
+
+  // Produk versi kasir: fitur produk yang dimatikan (stok, harga cabang, bonus) tidak berlaku.
+  const { stockTracking, branchPricing, freeItems } = features;
+  const products = useMemo(
+    () => shopProducts.map((p) => tillProduct(p, { stockTracking, branchPricing, freeItems })),
+    [shopProducts, stockTracking, branchPricing, freeItems],
+  );
+  const productsById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
 
   useEffect(() => {
     localStorage.setItem(draftKey(branchId), JSON.stringify(cart));
@@ -98,7 +116,7 @@ export function usePosState() {
     [levels, cartConsumed, extraFor],
   );
 
-  const blockOnStock = config.stockPolicy === "block";
+  const blockOnStock = stockTracking && config.stockPolicy === "block";
 
   const add = useCallback(
     (product: Product, quantity?: number, choices?: LineChoice[]) => {
@@ -123,7 +141,7 @@ export function usePosState() {
       if (!user?.email) return { ok: false, message: "Sesi berakhir. Masuk lagi." };
       const problem = cartProblem(priced, branchId);
       if (problem) return { ok: false, message: problem };
-      const shortages = findShortages(levels, cartConsumed, stockItems, config.units);
+      const shortages = stockTracking ? findShortages(levels, cartConsumed, stockItems, config.units) : [];
       if (shortages.length && (blockOnStock || !req.overrideStock)) {
         return { ok: false, message: "Stok tidak cukup.", shortages };
       }
@@ -176,6 +194,7 @@ export function usePosState() {
       orders,
       productsById,
       features.customers,
+      stockTracking,
     ],
   );
 

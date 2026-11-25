@@ -83,7 +83,8 @@ function Tabs() {
   const [route, navigate] = useRoute();
   const { claims } = useAuth();
   const isOwner = claims?.role === "owner";
-  const tab = route === "/pengaturan" && !isOwner ? "/" : route;
+  const { features } = useShop();
+  const tab = (route === "/pengaturan" && !isOwner) || (route === "/stok" && !features.stockTracking) ? "/" : route;
   const { orders } = useBranch();
   // Pesanan yang masih perlu disiapkan atau diambil di cabang ini.
   const openOrders = orders.filter((o) => o.orderStatus === "pending" || o.orderStatus === "ready").length;

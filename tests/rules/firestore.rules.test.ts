@@ -177,6 +177,11 @@ describe("config/shop dan settings/features", () => {
     await assertFails(setDoc(doc(owner(), "settings/features"), { ...f, unknown: true }));
     await assertSucceeds(setDoc(doc(owner(), "settings/features"), { ...f, productPhotos: false }));
     await assertFails(setDoc(doc(owner(), "settings/features"), { ...f, productPhotos: "ya" }));
+    const productFlags = { stockTracking: false, freeItems: true, branchPricing: true, sku: true };
+    await assertSucceeds(setDoc(doc(owner(), "settings/features"), { ...f, ...productFlags }));
+    for (const name of Object.keys(productFlags)) {
+      await assertFails(setDoc(doc(owner(), "settings/features"), { ...f, [name]: "ya" }));
+    }
     await assertFails(setDoc(doc(staffTkl(), "settings/features"), { ...f, updatedBy: STAFF_TKL }));
   });
 });
@@ -223,6 +228,13 @@ describe("katalog", () => {
     await assertFails(setDoc(doc(owner(), "products/as002"), { ...product, stockMode: "magic" }));
     await assertFails(setDoc(doc(owner(), "products/as002"), { ...product, price: -1 }));
     await assertFails(setDoc(doc(staffTkl(), "products/as002"), product));
+  });
+
+  it("urutan produk: pemilik bisa mengubah order saja, staf tidak", async () => {
+    await assertSucceeds(setDoc(doc(owner(), "products/as002"), product));
+    await assertSucceeds(updateDoc(doc(owner(), "products/as002"), { order: 7 }));
+    await assertFails(updateDoc(doc(owner(), "products/as002"), { order: "pertama" }));
+    await assertFails(updateDoc(doc(staffTkl(), "products/as002"), { order: 0 }));
   });
 
   it("foto produk: key di folder produk itu sendiri, bukan URL atau produk lain", async () => {

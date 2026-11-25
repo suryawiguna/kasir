@@ -10,7 +10,7 @@ import { useAuth } from "../features/auth/AuthContext";
 import { deleteCategory, makeId, saveBranch, saveCategory, saveFeatures, saveShopConfig, saveStockItem, slugId } from "../features/catalog/catalogActions";
 import { useDevice } from "../features/device/DeviceContext";
 import { BRANCH_CODE_PATTERN } from "../features/orders/orderNumber";
-import { FEATURE_INFO, FEATURE_ORDER } from "../features/settings/featureFlags";
+import { FEATURE_GROUPS, FEATURE_INFO, FEATURE_ORDER } from "../features/settings/featureFlags";
 import { useShop } from "../features/shop/ShopContext";
 import { findUnit, formatUnitNumber, parseQuantityInput, unitCodeFromLabel, validateUnit } from "../features/units/units";
 import { TIMEZONE_LABELS } from "../lib/businessDate";
@@ -32,11 +32,14 @@ const SECTIONS: { value: Section; label: string }[] = [
 
 /** Pengaturan pemilik. Semua pilihan bisnis ada di sini, bukan di kode. */
 export default function SettingsPage() {
-  const [section, setSection] = useState<Section>("produk");
+  const { features } = useShop();
+  const [picked, setSection] = useState<Section>("produk");
+  const sections = SECTIONS.filter((s) => s.value !== "stok" || features.stockTracking);
+  const section = sections.some((s) => s.value === picked) ? picked : "produk";
   return (
     <div className="space-y-4">
       <div className="sticky -top-4 z-20 -mx-4 bg-zinc-50/95 px-4 pt-4 pb-2 backdrop-blur lg:-top-4">
-        <SegmentedControl scrollable value={section} onChange={setSection} options={SECTIONS} />
+        <SegmentedControl scrollable value={section} onChange={setSection} options={sections} />
       </div>
       <div className="max-w-2xl">
         {section === "toko" && <ShopSection />}
@@ -123,7 +126,7 @@ function EditorFooter({ onSave, disabled, onDelete }: { onSave: () => void; disa
 /* ------------------------------------------------------------------ */
 
 function ShopSection() {
-  const { config } = useShop();
+  const { config, features } = useShop();
   const { user } = useAuth();
   const [draft, setDraft] = useState<ShopConfig>(config);
   const set = <K extends keyof ShopConfig>(key: K, value: ShopConfig[K]) => setDraft((d) => ({ ...d, [key]: value }));
@@ -170,17 +173,19 @@ function ShopSection() {
             options={(Object.keys(TIMEZONE_LABELS) as Timezone[]).map((tz) => ({ value: tz, label: `${TIMEZONE_LABELS[tz]} (${tz})` }))}
           />
         </Field>
-        <Field group label="Saat stok habis" hint="Blokir: kasir tidak bisa menjual melebihi stok. Peringatan: boleh, dengan tanda.">
-          <SegmentedControl
-            className="w-full"
-            value={draft.stockPolicy}
-            onChange={(v) => set("stockPolicy", v)}
-            options={[
-              { value: "block", label: "Blokir" },
-              { value: "warn", label: "Peringatan saja" },
-            ]}
-          />
-        </Field>
+        {features.stockTracking && (
+          <Field group label="Saat stok habis" hint="Blokir: kasir tidak bisa menjual melebihi stok. Peringatan: boleh, dengan tanda.">
+            <SegmentedControl
+              className="w-full"
+              value={draft.stockPolicy}
+              onChange={(v) => set("stockPolicy", v)}
+              options={[
+                { value: "block", label: "Blokir" },
+                { value: "warn", label: "Peringatan saja" },
+              ]}
+            />
+          </Field>
+        )}
         <Field group label="Pesanan langsung" hint="Pilih Diproses dulu bila barang perlu disiapkan (mis. dimasak atau dikemas) sebelum diserahkan.">
           <SegmentedControl
             className="w-full"
@@ -253,26 +258,34 @@ function ShopSection() {
 /* ------------------------------------------------------------------ */
 
 function FeaturesSection() {
-  const { features } = useShop();
+  const { features, branches } = useShop();
   const { user } = useAuth();
   return (
-    <>
-      <SectionIntro>Mematikan fitur menyembunyikannya dari semua perangkat. Data yang sudah tercatat tidak dihapus.</SectionIntro>
-      <div className="card divide-y divide-zinc-100 px-4">
-        {FEATURE_ORDER.filter((name) => FEATURE_INFO[name].ready).map((name) => {
+    <div className="space-y-6">
+      {FEATURE_GROUPS.map(({ group, title, intro }) => {
+        const names = FEATURE_ORDER.filter((name) => {
           const info = FEATURE_INFO[name];
-          return (
-            <Toggle
-              key={name}
-              label={info.label}
-              detail={info.detail}
-              checked={features[name]}
-              onChange={(value) => saveFeatures({ ...features, [name]: value }, user?.email ?? "")}
-            />
-          );
-        })}
-      </div>
-    </>
+          return info.ready && info.group === group && (!info.multiBranchOnly || branches.length > 1);
+        });
+        return (
+          <section key={group} className="space-y-2">
+            <h3 className="section-title">{title}</h3>
+            <SectionIntro>{intro} Data yang sudah tercatat tidak dihapus.</SectionIntro>
+            <div className="card divide-y divide-zinc-100 px-4">
+              {names.map((name) => (
+                <Toggle
+                  key={name}
+                  label={FEATURE_INFO[name].label}
+                  detail={FEATURE_INFO[name].detail}
+                  checked={features[name]}
+                  onChange={(value) => saveFeatures({ ...features, [name]: value }, user?.email ?? "")}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
   );
 }
 

@@ -1,4 +1,4 @@
-import { deleteDoc, setDoc, writeBatch } from "firebase/firestore";
+import { deleteDoc, setDoc, updateDoc, writeBatch } from "firebase/firestore";
 import { db } from "../../data/firebase";
 import { newId, shopDoc, shopSingleton, type ShopCollection } from "../../data/paths";
 import { queueWrite } from "../../data/queuedWrite";
@@ -6,6 +6,7 @@ import type { Branch, Category, Product, ShopConfig, StockItem } from "../../dom
 import type { FeatureFlags } from "../settings/featureFlags";
 import { consumesForMode, ownStockItemId } from "../stock/consumption";
 import { findUnit } from "../units/units";
+import { orderChanges } from "./reorder";
 
 /**
  * Write katalog dan pengaturan, hanya pemilik (rules). Semua lewat
@@ -105,6 +106,19 @@ export const saveProduct = (
     batch.set(shopDoc("stockItems", ownId), { ...existingOwn, active: false });
   }
   queueWrite(batch.commit(), `Produk ${product.name}`);
+};
+
+/** Simpan urutan produk di kasir. Hanya `order` yang berubah ditulis. */
+export const saveProductOrder = (products: readonly Product[], orderedIds: readonly string[]) => {
+  const changes = orderChanges(products, orderedIds);
+  if (changes.length === 0) return;
+  if (changes.length === 1) {
+    queueWrite(updateDoc(shopDoc("products", changes[0].id), { order: changes[0].order }), "Urutan produk");
+    return;
+  }
+  const batch = writeBatch(db);
+  for (const c of changes) batch.update(shopDoc("products", c.id), { order: c.order });
+  queueWrite(batch.commit(), "Urutan produk");
 };
 
 export const deleteProduct = (product: Product) =>
