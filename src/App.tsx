@@ -3,11 +3,14 @@ import { AppShell } from "./components/AppShell";
 import { Skeleton } from "./components/ui";
 import { useAuth } from "./features/auth/AuthContext";
 import { ACCESS_PROBLEM_TEXT, accessProblem } from "./features/auth/claims";
+import { IS_DEMO } from "./features/demo/demo";
+import { DemoProvider, useDemo } from "./features/demo/DemoContext";
 import { DeviceProvider, useDevice } from "./features/device/DeviceContext";
 import { BranchProvider, useBranch } from "./features/orders/BranchContext";
 import { ShopProvider, useShop } from "./features/shop/ShopContext";
 import { LoginPage } from "./pages/LoginPage";
 import { DeviceSetupPage } from "./pages/DeviceSetupPage";
+import { DemoNotFoundPage } from "./pages/DemoNotFoundPage";
 import { useRoute } from "./lib/route";
 
 const PosPage = lazy(() => import("./pages/PosPage"));
@@ -20,12 +23,24 @@ const SettingsPage = lazy(() => import("./pages/SettingsPage"));
  * file di pages/, handler pesanan di features/orders/orderActions.ts.
  *
  * Urutan gerbang: Auth → akses (claims) → data toko → setup perangkat →
- * data cabang → tab.
+ * data cabang → tab. Mode demo: masuk anonim (tanpa halaman masuk) → demo
+ * ada? → data toko → setup otomatis → data cabang → tab.
  */
 export default function App() {
-  const { loading, user, claims, logout } = useAuth();
+  const { loading, user, claims, logout, demoSignInFailed, retryDemoSignIn } = useAuth();
 
   if (loading) return <Splash />;
+  if (!user && IS_DEMO) {
+    return (
+      <Centered>
+        <h1 className="text-xl font-bold">{demoSignInFailed ? "Demo belum bisa dibuka" : "Membuka demo"}</h1>
+        <p className="text-sm text-zinc-500">Pastikan HP tersambung ke internet, lalu coba lagi.</p>
+        <button className="btn-primary w-full" onClick={retryDemoSignIn}>
+          Coba lagi
+        </button>
+      </Centered>
+    );
+  }
   if (!user) return <LoginPage />;
 
   const problem = claims ? accessProblem(claims) : "no-admin";
@@ -42,13 +57,28 @@ export default function App() {
     );
   }
 
-  return (
+  const shop = (
     <ShopProvider enabled>
       <DeviceProvider>
         <Gate />
       </DeviceProvider>
     </ShopProvider>
   );
+  return IS_DEMO ? (
+    <DemoProvider>
+      <DemoGate>{shop}</DemoGate>
+    </DemoProvider>
+  ) : (
+    shop
+  );
+}
+
+/** Mode demo: data toko baru dibaca setelah `demos/{id}` terbukti ada. */
+function DemoGate({ children }: { children: React.ReactNode }) {
+  const demo = useDemo();
+  if (demo.status === "loading") return <Splash />;
+  if (demo.status === "missing") return <DemoNotFoundPage />;
+  return <>{children}</>;
 }
 
 function Gate() {
@@ -73,7 +103,8 @@ function Gate() {
   if (!setup) return <DeviceSetupPage />;
 
   return (
-    <BranchProvider branchId={setup.branchId}>
+    // key: pindah cabang (bilah demo) memulai kasir cabang itu dari awal, termasuk draf keranjangnya.
+    <BranchProvider key={setup.branchId} branchId={setup.branchId}>
       <Tabs />
     </BranchProvider>
   );

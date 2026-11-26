@@ -26,6 +26,13 @@ export const parseClaims = (claims: Record<string, unknown>): AuthClaims => {
   return { admin, role, branchId };
 };
 
+/** Mode demo: setiap pengunjung pemilik, tanpa cabang terkunci. */
+export const DEMO_CLAIMS: AuthClaims = { admin: true, role: "owner", branchId: null };
+
+/** Cap audit untuk tamu demo anonim: `tamu-ab12cd@kasir-demo.local`. */
+export const demoActor = (uid: string, domain: string): string =>
+  `tamu-${uid.slice(0, 6).toLowerCase()}@${domain}`;
+
 export type AccessProblem = "no-admin" | "no-role" | "staff-without-branch" | null;
 
 /** Kenapa akun ini tidak bisa memakai aplikasi, atau null bila bisa. */

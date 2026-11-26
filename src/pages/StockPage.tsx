@@ -166,7 +166,7 @@ function AdjustSheet({
   onClose: () => void;
 }) {
   const { config } = useShop();
-  const { user } = useAuth();
+  const { actor } = useAuth();
   const [mode, setMode] = useState<"add" | "set">("add");
   const [text, setText] = useState("");
   const [note, setNote] = useState("");
@@ -201,7 +201,7 @@ function AdjustSheet({
               value: value!,
               current,
               note: note.trim() || undefined,
-              by: user?.email ?? "",
+              by: actor,
             });
             toast.success("Stok disimpan");
             onClose();

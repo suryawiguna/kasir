@@ -4,20 +4,58 @@
     {
       "name": "kasir-demo",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000
     },
     {
       "name": "emulators",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "emulators"],
+      "runtimeArgs": [
+        "run",
+        "emulators"
+      ],
       "port": 8080
     },
     {
       "name": "media-worker",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "worker", "run", "dev"],
+      "runtimeArgs": [
+        "--prefix",
+        "worker",
+        "run",
+        "dev"
+      ],
       "port": 8787
+    },
+    {
+      "name": "emulators-demo",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "emulators:demo"
+      ],
+      "port": 8080
+    },
+    {
+      "name": "kasir-demo-emulator",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:demo-emulator"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "kasir-emulator",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:emulator"
+      ],
+      "port": 3000
     }
   ]
 }

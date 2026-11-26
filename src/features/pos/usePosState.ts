@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CLIENT } from "../../client";
 import { newId } from "../../data/paths";
 import type { LineChoice, Order, OrderType, PaymentMethod, Product } from "../../domain/types";
 import { getBusinessDateCompact } from "../../lib/businessDate";
 import { useAuth } from "../auth/AuthContext";
+import { STORAGE_SLUG } from "../demo/demo";
 import { useDevice } from "../device/DeviceContext";
 import { lastSequenceKey } from "../device/deviceSetup";
 import { useBranch } from "../orders/BranchContext";
@@ -41,7 +41,7 @@ export type CheckoutOutcome =
   | { ok: true; order: Order }
   | { ok: false; message: string; shortages?: Shortage[] };
 
-const draftKey = (branchId: string) => `${CLIENT.slug}:cart:${branchId}`;
+const draftKey = (branchId: string) => `${STORAGE_SLUG}:cart:${branchId}`;
 
 const loadDraft = (branchId: string): CartLine[] => {
   try {
@@ -61,7 +61,7 @@ export function usePosState() {
   const { config, features, categories, products: shopProducts, stockItems } = useShop();
   const { setup } = useDevice();
   const { branch, inventory, orders, isCheckoutReady } = useBranch();
-  const { user } = useAuth();
+  const { actor } = useAuth();
   const branchId = setup?.branchId ?? "";
   const [cart, setCart] = useState<CartLine[]>(() => loadDraft(branchId));
 
@@ -138,7 +138,7 @@ export function usePosState() {
       if (!isCheckoutReady || !branch || !setup) {
         return { ok: false, message: "Data cabang belum siap. Tunggu sebentar lalu coba lagi." };
       }
-      if (!user?.email) return { ok: false, message: "Sesi berakhir. Masuk lagi." };
+      if (!actor) return { ok: false, message: "Sesi berakhir. Masuk lagi." };
       const problem = cartProblem(priced, branchId);
       if (problem) return { ok: false, message: problem };
       const shortages = stockTracking ? findShortages(levels, cartConsumed, stockItems, config.units) : [];
@@ -146,7 +146,7 @@ export function usePosState() {
         return { ok: false, message: "Stok tidak cukup.", shortages };
       }
 
-      const seqKey = lastSequenceKey(CLIENT.slug, branchId, setup.deviceLetter);
+      const seqKey = lastSequenceKey(STORAGE_SLUG, branchId, setup.deviceLetter);
       const lastIssued = Number(localStorage.getItem(seqKey)) || 0;
       const sequence = nextSequence(orders, branch.code, setup.deviceLetter, lastIssued);
       const now = new Date();
@@ -168,7 +168,7 @@ export function usePosState() {
         customerName: features.customers || req.orderType === "preorder" ? req.customerName : undefined,
         customerContact: features.customers ? req.customerContact : undefined,
         pickupTime: req.pickupTime,
-        createdBy: user.email,
+        createdBy: actor,
         now: now.toISOString(),
       });
       if (!result.ok) return result;
@@ -183,7 +183,7 @@ export function usePosState() {
       isCheckoutReady,
       branch,
       setup,
-      user,
+      actor,
       priced,
       branchId,
       levels,

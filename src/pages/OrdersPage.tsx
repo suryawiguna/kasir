@@ -189,8 +189,7 @@ export default function OrdersPage() {
 
 function OrderDetail({ order, open, onClose, isOwner }: { order: Order | null; open: boolean; onClose: () => void; isOwner: boolean }) {
   const { config, features, branches } = useShop();
-  const { user } = useAuth();
-  const by = user?.email ?? "";
+  const { actor: by } = useAuth();
   const [collecting, setCollecting] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmUnpaid, setConfirmUnpaid] = useState(false);

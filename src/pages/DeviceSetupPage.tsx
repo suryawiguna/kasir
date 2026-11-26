@@ -20,7 +20,7 @@ import { useShop } from "../features/shop/ShopContext";
  * pesanan yang sama.
  */
 export function DeviceSetupPage({ firstBranch }: { firstBranch?: boolean }) {
-  const { claims, user } = useAuth();
+  const { claims, actor } = useAuth();
   const { branches } = useShop();
   const { save } = useDevice();
   const isOwner = claims?.role === "owner";
@@ -52,7 +52,7 @@ export function DeviceSetupPage({ firstBranch }: { firstBranch?: boolean }) {
 
   const staffBranch = useMemo(() => branches.find((b) => b.id === claims?.branchId), [branches, claims]);
 
-  if (firstBranch) return <FirstBranchForm by={user?.email ?? ""} />;
+  if (firstBranch) return <FirstBranchForm by={actor} />;
 
   if (!isOwner && !staffBranch) {
     return (

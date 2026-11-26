@@ -1,0 +1,350 @@
+{
+  "_comment": "Template demo dimsum. Dipakai seed-demo: npm run seed-demo -- <id> --template dimsum. Juga demo bawaan `contoh`.",
+  "sampleOrdersPerDay": [
+    10,
+    20
+  ],
+  "config": {
+    "name": "Toko Contoh",
+    "brandColor": "#b91c1c",
+    "units": [
+      {
+        "code": "pcs",
+        "label": "pcs",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "porsi",
+        "label": "porsi",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "paket",
+        "label": "paket",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "botol",
+        "label": "botol",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      }
+    ],
+    "receipt": {
+      "header": [
+        "Toko Contoh",
+        "Dimsum kukus & goreng"
+      ],
+      "footer": [
+        "Terima kasih, sampai jumpa lagi"
+      ],
+      "showCustomerName": true,
+      "paperWidth": 32
+    },
+    "currency": "IDR",
+    "timezone": "Asia/Makassar",
+    "stockPolicy": "warn",
+    "instantStatus": "pending"
+  },
+  "features": {
+    "receipt": true,
+    "kitchenTicket": false,
+    "stockTracking": true,
+    "weightSales": false,
+    "bundles": true,
+    "freeItems": false,
+    "branchPricing": false,
+    "sku": false,
+    "preorder": true,
+    "customers": true,
+    "transfer": true,
+    "qris": false,
+    "events": false,
+    "cashCount": false,
+    "proofPhotos": false,
+    "productPhotos": false
+  },
+  "branches": [
+    {
+      "id": "c1",
+      "name": "Cabang Pusat",
+      "code": "PST",
+      "active": true,
+      "order": 0
+    },
+    {
+      "id": "c2",
+      "name": "Cabang Mall",
+      "code": "MAL",
+      "active": true,
+      "order": 1
+    }
+  ],
+  "categories": [
+    {
+      "id": "kukus",
+      "name": "Dimsum kukus",
+      "order": 0,
+      "active": true
+    },
+    {
+      "id": "goreng",
+      "name": "Goreng",
+      "order": 1,
+      "active": true
+    },
+    {
+      "id": "paket",
+      "name": "Paket",
+      "order": 2,
+      "active": true
+    },
+    {
+      "id": "tambahan",
+      "name": "Tambahan",
+      "order": 3,
+      "active": true
+    }
+  ],
+  "stockItems": [
+    {
+      "id": "dimsum",
+      "name": "Dimsum (pcs)",
+      "unit": "pcs",
+      "lowAt": 80,
+      "active": true,
+      "order": 0
+    },
+    {
+      "id": "kulit-lumpia",
+      "name": "Kulit lumpia",
+      "unit": "pcs",
+      "lowAt": 30,
+      "active": true,
+      "order": 1
+    },
+    {
+      "id": "chili-oil",
+      "name": "Chili oil (botol)",
+      "unit": "botol",
+      "lowAt": 5,
+      "active": true,
+      "order": 2
+    }
+  ],
+  "products": [
+    {
+      "id": "siomay",
+      "name": "Siomay Ayam",
+      "categoryId": "kukus",
+      "price": 20000,
+      "unit": "porsi",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 0,
+      "consumes": [
+        {
+          "stockItemId": "dimsum",
+          "qty": 4
+        }
+      ]
+    },
+    {
+      "id": "hakau",
+      "name": "Hakau Udang",
+      "categoryId": "kukus",
+      "price": 25000,
+      "unit": "porsi",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 1,
+      "consumes": [
+        {
+          "stockItemId": "dimsum",
+          "qty": 4
+        }
+      ]
+    },
+    {
+      "id": "mentai4",
+      "name": "Dimsum Mentai isi 4",
+      "categoryId": "kukus",
+      "price": 28000,
+      "unit": "porsi",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 2,
+      "consumes": [
+        {
+          "stockItemId": "dimsum",
+          "qty": 4
+        }
+      ]
+    },
+    {
+      "id": "mentai8",
+      "name": "Dimsum Mentai isi 8",
+      "categoryId": "kukus",
+      "price": 52000,
+      "unit": "porsi",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 3,
+      "consumes": [
+        {
+          "stockItemId": "dimsum",
+          "qty": 8
+        }
+      ]
+    },
+    {
+      "id": "lumpia",
+      "name": "Lumpia Kulit Tahu",
+      "categoryId": "goreng",
+      "price": 18000,
+      "unit": "porsi",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 10,
+      "consumes": [
+        {
+          "stockItemId": "kulit-lumpia",
+          "qty": 3
+        }
+      ]
+    },
+    {
+      "id": "wonton",
+      "name": "Wonton Goreng",
+      "categoryId": "goreng",
+      "price": 15000,
+      "unit": "porsi",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 11,
+      "consumes": [
+        {
+          "stockItemId": "kulit-lumpia",
+          "qty": 5
+        }
+      ]
+    },
+    {
+      "id": "paket-hemat",
+      "name": "Paket Hemat isi 3",
+      "categoryId": "paket",
+      "price": 55000,
+      "unit": "paket",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 20,
+      "choiceGroups": [
+        {
+          "id": "isi",
+          "label": "Pilih 3 menu",
+          "min": 3,
+          "max": 3,
+          "allowRepeat": true,
+          "options": [
+            {
+              "id": "siomay",
+              "label": "Siomay Ayam",
+              "consumes": [
+                {
+                  "stockItemId": "dimsum",
+                  "qty": 4
+                }
+              ]
+            },
+            {
+              "id": "hakau",
+              "label": "Hakau Udang",
+              "priceDelta": 2000,
+              "consumes": [
+                {
+                  "stockItemId": "dimsum",
+                  "qty": 4
+                }
+              ]
+            },
+            {
+              "id": "lumpia",
+              "label": "Lumpia Kulit Tahu",
+              "consumes": [
+                {
+                  "stockItemId": "kulit-lumpia",
+                  "qty": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chili-oil",
+      "name": "Chili Oil",
+      "categoryId": "tambahan",
+      "price": 25000,
+      "unit": "botol",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 30,
+      "consumes": [
+        {
+          "stockItemId": "chili-oil",
+          "qty": 1
+        }
+      ]
+    },
+    {
+      "id": "es-teh",
+      "name": "Es Teh Manis",
+      "categoryId": "tambahan",
+      "price": 6000,
+      "unit": "pcs",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 31
+    },
+    {
+      "id": "air",
+      "name": "Air Mineral",
+      "categoryId": "tambahan",
+      "price": 5000,
+      "unit": "botol",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 32
+    }
+  ],
+  "inventory": {
+    "c1": {
+      "dimsum": 500,
+      "kulit-lumpia": 150,
+      "chili-oil": 24
+    },
+    "c2": {
+      "dimsum": 400,
+      "kulit-lumpia": 120,
+      "chili-oil": 18
+    }
+  }
+}

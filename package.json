@@ -7,6 +7,7 @@
     "dev": "CLIENT=${CLIENT:-kasir-demo} vite --port=3000 --host=0.0.0.0",
     "dev:emulator": "CLIENT=demo vite --port=3000 --host=0.0.0.0",
     "dev:test": "VITE_USE_EMULATOR=true vite --port=3000 --host=0.0.0.0",
+    "dev:demo-emulator": "CLIENT=kasir-demo VITE_USE_EMULATOR=true vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit && tsc --noEmit -p worker && node scripts/check-paths.mjs",
@@ -14,7 +15,9 @@
     "test:watch": "vitest",
     "test:rules": "npx --yes firebase-tools@15 emulators:exec --only firestore --project demo-kasir \"vitest run --config vitest.rules.config.ts\"",
     "emulators": "npx --yes firebase-tools@15 emulators:start --only firestore,auth --project demo-kasir",
+    "emulators:demo": "npx --yes firebase-tools@15 emulators:start --only firestore,auth --project demo-kasir-demo --config firebase.demo.json",
     "seed": "node scripts/seed.mjs",
+    "seed-demo": "node scripts/seed-demo.mjs",
     "set-admin": "node scripts/set-admin.mjs",
     "new-client": "node scripts/new-client.mjs",
     "deploy": "node scripts/deploy.mjs"

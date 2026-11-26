@@ -3,6 +3,7 @@ import { type ReactNode } from "react";
 import { CLIENT } from "../client";
 import { useAuth } from "../features/auth/AuthContext";
 import { emailToUsername } from "../features/auth/claims";
+import { IS_DEMO } from "../features/demo/demo";
 import { useDevice } from "../features/device/DeviceContext";
 import { useBranch } from "../features/orders/BranchContext";
 import { useShop } from "../features/shop/ShopContext";
@@ -12,6 +13,7 @@ import { findUnit, formatQuantity } from "../features/units/units";
 import { cn } from "../lib/cn";
 import type { Route } from "../lib/route";
 import { ActionMenu } from "./ActionMenu";
+import { DemoBar } from "./DemoBar";
 import { ShopLogo } from "./ShopLogo";
 import { bottomNavBoxClass, bottomNavItemClass, bottomNavLabelClass, CountBadge, navItemClass } from "./ui";
 
@@ -26,6 +28,8 @@ const NAV: { route: Route; label: string; icon: typeof ShoppingCart; ownerOnly?:
  * Shell dari Haoshii: di HP, isi + nav bawah (dengan menu Akun); dari `lg`,
  * kartu navigasi 224px yang menempel di kiri `app-shell` yang di tengah, dan
  * sisa stok cabang di bawahnya supaya terlihat dari setiap tab.
+ *
+ * Mode demo: bilah demo di atas, tanpa menu Akun (tidak ada akun untuk keluar).
  */
 export function AppShell({
   route,
@@ -63,6 +67,7 @@ export function AppShell({
   return (
     <div className="flex h-[100dvh] bg-zinc-50 overflow-hidden">
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden pb-nav-safe lg:pb-0">
+        {IS_DEMO && <DemoBar />}
         {!online && (
           <div
             role="status"
@@ -99,19 +104,21 @@ export function AppShell({
                       {badges?.[n.route] ? <CountBadge count={String(badges[n.route])} className="ml-auto" /> : null}
                     </button>
                   ))}
-                  <ActionMenu
-                    label="Akun"
-                    placement="right"
-                    header={accountHeader}
-                    items={accountItems}
-                    trigger={
-                      <>
-                        <UserRound size={20} />
-                        <span className="truncate">{username}</span>
-                      </>
-                    }
-                    triggerClassName={(open) => cn(navItemClass(open), "justify-start")}
-                  />
+                  {!IS_DEMO && (
+                    <ActionMenu
+                      label="Akun"
+                      placement="right"
+                      header={accountHeader}
+                      items={accountItems}
+                      trigger={
+                        <>
+                          <UserRound size={20} />
+                          <span className="truncate">{username}</span>
+                        </>
+                      }
+                      triggerClassName={(open) => cn(navItemClass(open), "justify-start")}
+                    />
+                  )}
                 </nav>
               </div>
               {features.stockTracking && <StockList onOpen={() => navigate("/stok")} />}
@@ -146,20 +153,22 @@ export function AppShell({
             </button>
           );
         })}
-        <ActionMenu
-          className="w-full min-w-0"
-          label="Akun"
-          placement="above"
-          header={accountHeader}
-          items={accountItems}
-          trigger={
-            <span className={bottomNavBoxClass}>
-              <UserRound size={20} />
-              <span className={bottomNavLabelClass(false)}>Akun</span>
-            </span>
-          }
-          triggerClassName={(open) => bottomNavItemClass(open)}
-        />
+        {!IS_DEMO && (
+          <ActionMenu
+            className="w-full min-w-0"
+            label="Akun"
+            placement="above"
+            header={accountHeader}
+            items={accountItems}
+            trigger={
+              <span className={bottomNavBoxClass}>
+                <UserRound size={20} />
+                <span className={bottomNavLabelClass(false)}>Akun</span>
+              </span>
+            }
+            triggerClassName={(open) => bottomNavItemClass(open)}
+          />
+        )}
       </nav>
     </div>
   );

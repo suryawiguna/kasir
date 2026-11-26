@@ -1,0 +1,293 @@
+{
+  "_comment": "Template demo salon kuku & bulu mata. Layanan tidak dilacak stoknya; hanya produk jual (cuticle oil).",
+  "sampleOrdersPerDay": [
+    4,
+    10
+  ],
+  "config": {
+    "name": "Salon Contoh",
+    "brandColor": "#be185d",
+    "units": [
+      {
+        "code": "pcs",
+        "label": "pcs",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "botol",
+        "label": "botol",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "layanan",
+        "label": "layanan",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      }
+    ],
+    "receipt": {
+      "header": [
+        "Salon Contoh",
+        "Nail & lash studio"
+      ],
+      "footer": [
+        "Terima kasih, sampai jumpa lagi"
+      ],
+      "showCustomerName": true,
+      "paperWidth": 32
+    },
+    "currency": "IDR",
+    "timezone": "Asia/Makassar",
+    "stockPolicy": "warn",
+    "instantStatus": "completed"
+  },
+  "features": {
+    "receipt": true,
+    "kitchenTicket": false,
+    "stockTracking": true,
+    "weightSales": false,
+    "bundles": true,
+    "freeItems": false,
+    "branchPricing": false,
+    "sku": false,
+    "preorder": true,
+    "customers": true,
+    "transfer": true,
+    "qris": false,
+    "events": false,
+    "cashCount": false,
+    "proofPhotos": false,
+    "productPhotos": false
+  },
+  "branches": [
+    {
+      "id": "c1",
+      "name": "Studio Pusat",
+      "code": "PST",
+      "active": true,
+      "order": 0
+    }
+  ],
+  "categories": [
+    {
+      "id": "kuku",
+      "name": "Kuku",
+      "order": 0,
+      "active": true
+    },
+    {
+      "id": "bulu-mata",
+      "name": "Bulu mata",
+      "order": 1,
+      "active": true
+    },
+    {
+      "id": "perawatan",
+      "name": "Perawatan",
+      "order": 2,
+      "active": true
+    },
+    {
+      "id": "produk",
+      "name": "Produk",
+      "order": 3,
+      "active": true
+    }
+  ],
+  "stockItems": [
+    {
+      "id": "cuticle-oil",
+      "name": "Cuticle oil",
+      "unit": "botol",
+      "lowAt": 3,
+      "active": true,
+      "order": 0
+    }
+  ],
+  "products": [
+    {
+      "id": "gel",
+      "name": "Gel Polish",
+      "categoryId": "kuku",
+      "price": 120000,
+      "unit": "layanan",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 0,
+      "choiceGroups": [
+        {
+          "id": "bagian",
+          "label": "Bagian",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "tangan",
+              "label": "Tangan"
+            },
+            {
+              "id": "kaki",
+              "label": "Kaki"
+            },
+            {
+              "id": "keduanya",
+              "label": "Tangan dan kaki",
+              "priceDelta": 100000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nail-art",
+      "name": "Nail Art",
+      "categoryId": "kuku",
+      "price": 150000,
+      "unit": "layanan",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 1,
+      "choiceGroups": [
+        {
+          "id": "desain",
+          "label": "Desain",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "simple",
+              "label": "Simple"
+            },
+            {
+              "id": "medium",
+              "label": "Medium",
+              "priceDelta": 50000
+            },
+            {
+              "id": "full",
+              "label": "Full art",
+              "priceDelta": 100000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "manicure",
+      "name": "Manicure",
+      "categoryId": "kuku",
+      "price": 80000,
+      "unit": "layanan",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 2
+    },
+    {
+      "id": "pedicure",
+      "name": "Pedicure",
+      "categoryId": "kuku",
+      "price": 90000,
+      "unit": "layanan",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 3
+    },
+    {
+      "id": "eyelash",
+      "name": "Eyelash Extension",
+      "categoryId": "bulu-mata",
+      "price": 250000,
+      "unit": "layanan",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 10,
+      "choiceGroups": [
+        {
+          "id": "gaya",
+          "label": "Gaya",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "natural",
+              "label": "Natural"
+            },
+            {
+              "id": "volume",
+              "label": "Volume",
+              "priceDelta": 50000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lash-lift",
+      "name": "Lash Lift",
+      "categoryId": "bulu-mata",
+      "price": 180000,
+      "unit": "layanan",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 11
+    },
+    {
+      "id": "spa-tangan",
+      "name": "Spa Tangan",
+      "categoryId": "perawatan",
+      "price": 100000,
+      "unit": "layanan",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 20
+    },
+    {
+      "id": "hapus-gel",
+      "name": "Hapus Gel",
+      "categoryId": "perawatan",
+      "price": 35000,
+      "unit": "layanan",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 21
+    },
+    {
+      "id": "cuticle-oil",
+      "name": "Cuticle Oil",
+      "categoryId": "produk",
+      "price": 45000,
+      "unit": "botol",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 30,
+      "consumes": [
+        {
+          "stockItemId": "cuticle-oil",
+          "qty": 1
+        }
+      ]
+    }
+  ],
+  "inventory": {
+    "c1": {
+      "cuticle-oil": 20
+    }
+  }
+}

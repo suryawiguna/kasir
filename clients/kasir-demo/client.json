@@ -5,6 +5,7 @@
   "usernameDomain": "kasir-demo.local",
   "hostingUrl": "https://kasir-demo.web.app",
   "workerUrl": "https://kasir-media.suryawigunaa.workers.dev",
+  "demo": true,
   "firebase": {
     "apiKey": "AIzaSyAob6APmdELpDKyXvz3-QmmreKrq1vcPIY",
     "authDomain": "kasir-demo.firebaseapp.com",

@@ -1,4 +1,4 @@
-import { CLIENT } from "../../client";
+import { STORAGE_SLUG } from "../demo/demo";
 import { brandForeground, brandRamp } from "./shopConfig";
 
 /**
@@ -14,7 +14,7 @@ export interface CachedBrand {
   logoUrl?: string;
 }
 
-const KEY = `${CLIENT.slug}:brand`;
+const KEY = `${STORAGE_SLUG}:brand`;
 
 export const readBrand = (): CachedBrand | null => {
   try {

@@ -1,0 +1,507 @@
+{
+  "_comment": "Template demo kafe. Varian ukuran dan gula lewat choiceGroups; Large menambah susu/kopi.",
+  "sampleOrdersPerDay": [
+    12,
+    22
+  ],
+  "config": {
+    "name": "Kopi Contoh",
+    "brandColor": "#57534e",
+    "units": [
+      {
+        "code": "pcs",
+        "label": "pcs",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "porsi",
+        "label": "porsi",
+        "factor": 1,
+        "decimals": 0,
+        "step": 1
+      },
+      {
+        "code": "kg",
+        "label": "kg",
+        "baseLabel": "gram",
+        "factor": 1000,
+        "decimals": 2,
+        "step": 0.1
+      },
+      {
+        "code": "gram",
+        "label": "gram",
+        "factor": 1,
+        "decimals": 0,
+        "step": 50
+      },
+      {
+        "code": "liter",
+        "label": "liter",
+        "baseLabel": "ml",
+        "factor": 1000,
+        "decimals": 2,
+        "step": 0.1
+      },
+      {
+        "code": "ml",
+        "label": "ml",
+        "factor": 1,
+        "decimals": 0,
+        "step": 50
+      }
+    ],
+    "receipt": {
+      "header": [
+        "Kopi Contoh",
+        "Kopi & roti"
+      ],
+      "footer": [
+        "Terima kasih, sampai jumpa lagi"
+      ],
+      "showCustomerName": true,
+      "paperWidth": 32
+    },
+    "currency": "IDR",
+    "timezone": "Asia/Makassar",
+    "stockPolicy": "warn",
+    "instantStatus": "pending"
+  },
+  "features": {
+    "receipt": true,
+    "kitchenTicket": false,
+    "stockTracking": true,
+    "weightSales": false,
+    "bundles": true,
+    "freeItems": false,
+    "branchPricing": false,
+    "sku": false,
+    "preorder": true,
+    "customers": true,
+    "transfer": true,
+    "qris": true,
+    "events": false,
+    "cashCount": false,
+    "proofPhotos": false,
+    "productPhotos": false
+  },
+  "branches": [
+    {
+      "id": "c1",
+      "name": "Cabang Pusat",
+      "code": "PST",
+      "active": true,
+      "order": 0
+    }
+  ],
+  "categories": [
+    {
+      "id": "kopi",
+      "name": "Kopi",
+      "order": 0,
+      "active": true
+    },
+    {
+      "id": "non-kopi",
+      "name": "Non kopi",
+      "order": 1,
+      "active": true
+    },
+    {
+      "id": "makanan",
+      "name": "Makanan",
+      "order": 2,
+      "active": true
+    }
+  ],
+  "stockItems": [
+    {
+      "id": "susu",
+      "name": "Susu segar",
+      "unit": "liter",
+      "lowAt": 3000,
+      "active": true,
+      "order": 0
+    },
+    {
+      "id": "kopi",
+      "name": "Biji kopi",
+      "unit": "kg",
+      "lowAt": 500,
+      "active": true,
+      "order": 1
+    },
+    {
+      "id": "roti",
+      "name": "Roti & pastry",
+      "unit": "pcs",
+      "lowAt": 8,
+      "active": true,
+      "order": 2
+    },
+    {
+      "id": "matcha",
+      "name": "Bubuk matcha",
+      "unit": "gram",
+      "lowAt": 100,
+      "active": true,
+      "order": 3
+    }
+  ],
+  "products": [
+    {
+      "id": "es-kopi-susu",
+      "name": "Es Kopi Susu",
+      "categoryId": "kopi",
+      "price": 22000,
+      "unit": "pcs",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 0,
+      "consumes": [
+        {
+          "stockItemId": "kopi",
+          "qty": 18
+        },
+        {
+          "stockItemId": "susu",
+          "qty": 150
+        }
+      ],
+      "choiceGroups": [
+        {
+          "id": "ukuran",
+          "label": "Ukuran",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "reg",
+              "label": "Reguler"
+            },
+            {
+              "id": "large",
+              "label": "Large",
+              "priceDelta": 5000,
+              "consumes": [
+                {
+                  "stockItemId": "kopi",
+                  "qty": 9
+                },
+                {
+                  "stockItemId": "susu",
+                  "qty": 75
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "gula",
+          "label": "Gula",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "normal",
+              "label": "Normal"
+            },
+            {
+              "id": "less",
+              "label": "Less sugar"
+            },
+            {
+              "id": "no",
+              "label": "Tanpa gula"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "americano",
+      "name": "Americano",
+      "categoryId": "kopi",
+      "price": 20000,
+      "unit": "pcs",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 1,
+      "consumes": [
+        {
+          "stockItemId": "kopi",
+          "qty": 18
+        }
+      ],
+      "choiceGroups": [
+        {
+          "id": "ukuran",
+          "label": "Ukuran",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "reg",
+              "label": "Reguler"
+            },
+            {
+              "id": "large",
+              "label": "Large",
+              "priceDelta": 5000,
+              "consumes": [
+                {
+                  "stockItemId": "kopi",
+                  "qty": 9
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "gula",
+          "label": "Gula",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "normal",
+              "label": "Normal"
+            },
+            {
+              "id": "less",
+              "label": "Less sugar"
+            },
+            {
+              "id": "no",
+              "label": "Tanpa gula"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "latte",
+      "name": "Cafe Latte",
+      "categoryId": "kopi",
+      "price": 27000,
+      "unit": "pcs",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 2,
+      "consumes": [
+        {
+          "stockItemId": "kopi",
+          "qty": 18
+        },
+        {
+          "stockItemId": "susu",
+          "qty": 200
+        }
+      ],
+      "choiceGroups": [
+        {
+          "id": "ukuran",
+          "label": "Ukuran",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "reg",
+              "label": "Reguler"
+            },
+            {
+              "id": "large",
+              "label": "Large",
+              "priceDelta": 5000,
+              "consumes": [
+                {
+                  "stockItemId": "kopi",
+                  "qty": 9
+                },
+                {
+                  "stockItemId": "susu",
+                  "qty": 100
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "gula",
+          "label": "Gula",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "normal",
+              "label": "Normal"
+            },
+            {
+              "id": "less",
+              "label": "Less sugar"
+            },
+            {
+              "id": "no",
+              "label": "Tanpa gula"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "matcha",
+      "name": "Matcha Latte",
+      "categoryId": "non-kopi",
+      "price": 28000,
+      "unit": "pcs",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 10,
+      "consumes": [
+        {
+          "stockItemId": "matcha",
+          "qty": 10
+        },
+        {
+          "stockItemId": "susu",
+          "qty": 200
+        }
+      ],
+      "choiceGroups": [
+        {
+          "id": "ukuran",
+          "label": "Ukuran",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "reg",
+              "label": "Reguler"
+            },
+            {
+              "id": "large",
+              "label": "Large",
+              "priceDelta": 5000,
+              "consumes": [
+                {
+                  "stockItemId": "susu",
+                  "qty": 100
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "gula",
+          "label": "Gula",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "normal",
+              "label": "Normal"
+            },
+            {
+              "id": "less",
+              "label": "Less sugar"
+            },
+            {
+              "id": "no",
+              "label": "Tanpa gula"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "teh",
+      "name": "Teh Lemon",
+      "categoryId": "non-kopi",
+      "price": 15000,
+      "unit": "pcs",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 11,
+      "choiceGroups": [
+        {
+          "id": "gula",
+          "label": "Gula",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "normal",
+              "label": "Normal"
+            },
+            {
+              "id": "less",
+              "label": "Less sugar"
+            },
+            {
+              "id": "no",
+              "label": "Tanpa gula"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "croissant",
+      "name": "Croissant Butter",
+      "categoryId": "makanan",
+      "price": 25000,
+      "unit": "pcs",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 20,
+      "consumes": [
+        {
+          "stockItemId": "roti",
+          "qty": 1
+        }
+      ]
+    },
+    {
+      "id": "roti-bakar",
+      "name": "Roti Bakar Cokelat Keju",
+      "categoryId": "makanan",
+      "price": 22000,
+      "unit": "porsi",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 21,
+      "consumes": [
+        {
+          "stockItemId": "roti",
+          "qty": 2
+        }
+      ]
+    }
+  ],
+  "inventory": {
+    "c1": {
+      "susu": 25000,
+      "kopi": 4000,
+      "roti": 60,
+      "matcha": 800
+    }
+  }
+}

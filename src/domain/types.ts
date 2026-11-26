@@ -16,6 +16,10 @@ export interface ClientConfig {
   usernameDomain: string;
   hostingUrl: string;
   workerUrl: string;
+  /** Mode demo per prospek (hanya kasir-demo): data di `demos/{id}`, login anonim. */
+  demo?: boolean;
+  /** Mode demo: link kontak bawaan untuk tombol di bilah demo (mis. wa.me). */
+  demoContactUrl?: string;
   firebase: {
     apiKey: string;
     authDomain: string;

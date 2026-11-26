@@ -46,6 +46,25 @@ export const effectiveSetup = (
 
 export const DEVICE_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
+/**
+ * Mode demo: setup otomatis tanpa halaman setup. Setup tersimpan yang masih
+ * berlaku dipakai apa adanya; selain itu cabang aktif pertama dengan huruf
+ * yang tersimpan (bila ada) atau huruf acak dari `random` (0..1). Huruf acak
+ * membuat dua pengunjung demo yang sama jarang berbagi urutan nomor pesanan.
+ * Null bila toko belum punya cabang aktif.
+ */
+export const demoDeviceSetup = (
+  stored: DeviceSetup | null,
+  activeBranchIds: readonly string[],
+  random: number,
+): DeviceSetup | null => {
+  if (stored && activeBranchIds.includes(stored.branchId)) return stored;
+  const branchId = activeBranchIds[0];
+  if (!branchId) return null;
+  const index = Math.min(DEVICE_LETTERS.length - 1, Math.max(0, Math.floor(random * DEVICE_LETTERS.length)));
+  return { branchId, deviceLetter: stored?.deviceLetter ?? DEVICE_LETTERS[index] };
+};
+
 /** Huruf pertama yang belum dipakai di cabang ini menurut pesanan yang terlihat. */
 export const suggestDeviceLetter = (usedLetters: Iterable<string>): string => {
   const used = new Set(usedLetters);

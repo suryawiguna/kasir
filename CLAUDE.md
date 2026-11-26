@@ -23,9 +23,12 @@ Setiap pilihan (cara hitung stok, satuan, kategori, isi paket, harga per cabang,
 ## Perintah
 
 ```bash
-npm run dev          # klien kasir-demo (project Firebase asli, data demo online). CLIENT=<slug> untuk klien lain
+npm run dev          # klien kasir-demo (project Firebase asli, mode demo). CLIENT=<slug> untuk klien lain
 npm run dev:emulator # klien demo (project demo-kasir) → emulator, untuk uji yang tidak boleh menyentuh data online
 npm run emulators    # Firestore + Auth emulator (Java 21)
+npm run emulators:demo + npm run dev:demo-emulator   # mode demo kasir-demo di emulator (firestore.demo.rules)
+npm run seed-demo -- <demoId> --template <dimsum|ayam|cafe|salon> [--name ..] [--branches "A,B"] [--force] [--emulator]
+npm run seed-demo -- --list | <demoId> --delete
 npm run seed -- --client demo     # isi emulator: Setup A Aneka Ayam + akun uji
 npm run lint         # tsc --noEmit + scripts/check-paths.mjs
 npm test             # modul murni
@@ -34,14 +37,15 @@ npm run build        # CLIENT=<slug> untuk klien lain (default demo)
 npm run set-admin -- --client <slug> <username> <kata-sandi> <owner|staff> [--branch <id>]
 npm run new-client -- <slug> "<Nama Toko>"
 npm run deploy -- --client <slug> | --all
+npm run deploy -- --client <slug> --rules   # rules + index saja (kasir-demo → firestore.demo.rules)
 npm --prefix worker run dev       # Worker foto lokal di :8787 (salin worker/.dev.vars.example ke .dev.vars)
 ```
 
-**Dev lokal memakai kasir-demo, bukan emulator** (permintaan pemilik repo): perubahan data saat `npm run dev` langsung terlihat di demo online. Unggah foto dari localhost ditolak Worker (origin localhost tidak terdaftar untuk kasir-demo).
+**Dev lokal memakai kasir-demo, bukan emulator** (permintaan pemilik repo): perubahan data saat `npm run dev` langsung terlihat di demo online. kasir-demo sekarang mode demo: `npm run dev` butuh Anonymous Auth dan rules demo aktif di project itu, lalu buka `localhost:3000/d/<demoId>`.
 
 Akun uji emulator (`npm run dev:emulator`, dari `clients/demo/seed.json`): `owner`, `kasir1` (cabang tkl), `kasir2` (cabang pkm), kata sandi `test1234`.
 
-Demo online: klien `kasir-demo` (project Firebase `kasir-demo`) di https://kasir-demo.web.app, data umum (Cabang A/B, Produk A–F), akun `owner`, `kasira`, `kasirb`. Kata sandinya dibagikan ke calon klien: anggap isinya publik. `npm run seed -- --client kasir-demo --force` mengembalikan katalog dan stok, tetapi tidak menghapus pesanan.
+Demo online: klien `kasir-demo` (project Firebase `kasir-demo`) di https://kasir-demo.web.app, **mode demo per prospek** (lihat bagian Mode demo). Akun lama `owner`, `kasira`, `kasirb` dan `clients/kasir-demo/seed.json` tidak dipakai lagi. Semua isi demo publik.
 
 Emulator butuh Java 21 (Temurin 21 terpasang di Mac ini lewat `brew install --cask temurin@21`; `brew install openjdk@21` gagal karena macOS ini Tier 3 dan butuh Xcode untuk kompilasi). Emulator bind ke `0.0.0.0` supaya HP di Wi-Fi yang sama bisa memakai `npm run dev` + emulator di laptop.
 
@@ -53,6 +57,16 @@ Emulator butuh Java 21 (Temurin 21 terpasang di Mac ini lewat `brew install --ca
 - `clients/<slug>/seed.json`: isi awal toko. `clients/<slug>/service-account.json`: kredensial, di-gitignore.
 - Project id `demo-*` selalu ke emulator (aplikasi dan semua script).
 - **Semua akses koleksi lewat [src/data/paths.ts](src/data/paths.ts)** (`shopCol`, `shopDoc`, `shopSingleton`, `newId`). `npm run lint` menolak `collection(db` / `doc(db` di file lain. Multi-tenant nanti = ubah paths.ts + rules saja.
+
+### Mode demo per prospek (hanya kasir-demo)
+
+Rencana: pesan pemilik repo 2026-11-26; cara pakai: [docs/RUNBOOK.md](docs/RUNBOOK.md). Aktif hanya bila `client.json` berisi `"demo": true`; untuk klien lain setiap nilai di [demo.ts](src/features/demo/demo.ts) netral, jadi perilakunya sama seperti tanpa mode demo.
+
+- Demo dari URL `/d/{demoId}/...`, root = demo `contoh`. [demoId.ts](src/features/demo/demoId.ts) (murni, dites), dibaca sekali saat boot di `demo.ts`: `DATA_PREFIX` (paths.ts → `demos/{id}/...`), `ROUTE_BASE` (route.ts), `STORAGE_SLUG` (kunci localStorage per demo).
+- Login anonim otomatis, claims disintesis pemilik (`DEMO_CLAIMS`). Cap audit memakai `actor` dari `useAuth()` (email, atau `tamu-<uid>@domain` di demo), **bukan** `user.email`.
+- `DemoProvider` membaca `demos/{id}`; tidak ada → "Demo ini belum tersedia". Setup perangkat otomatis (`demoDeviceSetup`), pindah cabang dari `DemoBar`. Unggah foto, Perangkat, dan Keluar disembunyikan.
+- Rules terpisah [firestore.demo.rules](firestore.demo.rules) (+ [tes](tests/rules/demo.rules.test.ts)), di-deploy lewat `firebase.demo.json`. `firestore.rules` tidak tahu tentang demo.
+- Isi demo: template `clients/kasir-demo/templates/*.json` + [demoTemplate.ts](src/features/demo/demoTemplate.ts) dan pesanan contoh [sampleOrders.ts](src/features/demo/sampleOrders.ts) (memakai cart/buildOrder/orderNumber yang sama dengan kasir), dimuat `scripts/seed-demo.mjs` lewat Vite SSR.
 
 ### Gerbang di [App.tsx](src/App.tsx)
 
@@ -81,6 +95,7 @@ Auth → claims (`accessProblem`) → `ShopProvider` (config, fitur, cabang, kat
 | [pos/cart.ts](src/features/pos/cart.ts) | keranjang, harga, snapshot baris |
 | [lib/businessDate.ts](src/lib/businessDate.ts) | hari bisnis per zona (Manado = WITA) |
 | shop/claims/device/featureFlags | parsing dokumen dan claims dengan default aman |
+| demo/demoId, demoTemplate, sampleOrders | URL/path demo, template prospek, pesanan contoh yang sama bentuknya dengan kasir |
 
 Menambah aturan di salah satunya = menambah tes. Tes yang merender komponen tidak dibuat (butuh Firebase di-mock).
 
@@ -125,4 +140,5 @@ Allowlist field, deny-by-default, cap audit = email token, `updatedAt` wajib ber
 - Fase 0–3: selesai (fondasi, config/branding/auth/cabang, produk/satuan/stok, kasir + checkout offline).
 - Fase 4: sebagian. Ada daftar pesanan, detail, ubah status, terima pembayaran, batal (stok kembali dari snapshot), tandai belum bayar. **Belum:** Ubah Item, struk thermal/browser.
 - Fase 6: foto produk dan logo lewat Worker R2 sudah ada di kode dan teruji lokal; belum di-deploy ke kasir-demo (IMAGES-PLAN G4).
+- Mode demo per prospek: ada di kode dan teruji di emulator. Anonymous Auth kasir-demo sudah aktif (2026-11-26); rules demo, seed `contoh`/`aneka-ayam`, dan deploy aplikasi belum.
 - Fase 5, 7, 8 dan sisa Fase 6: belum (analitik, ekspor CSV, pelanggan sebagai dokumen, event, hitung kas, deploy per tag rilis, backup matrix).

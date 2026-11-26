@@ -8,6 +8,7 @@ import { Confirm, Field, RowChevron, SegmentedControl, Toggle } from "../compone
 import type { Branch, Category, ShopConfig, StockItem, Timezone, Unit } from "../domain/types";
 import { useAuth } from "../features/auth/AuthContext";
 import { deleteCategory, makeId, saveBranch, saveCategory, saveFeatures, saveShopConfig, saveStockItem, slugId } from "../features/catalog/catalogActions";
+import { IS_DEMO } from "../features/demo/demo";
 import { useDevice } from "../features/device/DeviceContext";
 import { BRANCH_CODE_PATTERN } from "../features/orders/orderNumber";
 import { FEATURE_GROUPS, FEATURE_INFO, FEATURE_ORDER } from "../features/settings/featureFlags";
@@ -34,7 +35,10 @@ const SECTIONS: { value: Section; label: string }[] = [
 export default function SettingsPage() {
   const { features } = useShop();
   const [picked, setSection] = useState<Section>("produk");
-  const sections = SECTIONS.filter((s) => s.value !== "stok" || features.stockTracking);
+  // Mode demo: setup perangkat otomatis, pindah cabang dari bilah demo.
+  const sections = SECTIONS.filter(
+    (s) => (s.value !== "stok" || features.stockTracking) && (s.value !== "perangkat" || !IS_DEMO),
+  );
   const section = sections.some((s) => s.value === picked) ? picked : "produk";
   return (
     <div className="space-y-4">
@@ -127,7 +131,7 @@ function EditorFooter({ onSave, disabled, onDelete }: { onSave: () => void; disa
 
 function ShopSection() {
   const { config, features } = useShop();
-  const { user } = useAuth();
+  const { actor } = useAuth();
   const [draft, setDraft] = useState<ShopConfig>(config);
   const set = <K extends keyof ShopConfig>(key: K, value: ShopConfig[K]) => setDraft((d) => ({ ...d, [key]: value }));
   const lines = (text: string) => text.split("\n").slice(0, 8);
@@ -152,15 +156,18 @@ function ShopSection() {
             <input className="field-input font-mono" value={draft.brandColor} onChange={(e) => set("brandColor", e.target.value)} />
           </div>
         </Field>
-        <Field group label="Logo" hint="Tampil di layar masuk dan menu. Perubahan berlaku setelah Simpan.">
-          <ImagePicker
-            target={{ kind: "logo" }}
-            value={draft.logo ?? undefined}
-            name={draft.name}
-            // Logo unggahan menggantikan URL lama sepenuhnya.
-            onChange={(key) => setDraft((d) => ({ ...d, logo: key, logoUrl: undefined }))}
-          />
-        </Field>
+        {/* Mode demo: Worker menolak unggah tanpa token pemilik sungguhan. */}
+        {!IS_DEMO && (
+          <Field group label="Logo" hint="Tampil di layar masuk dan menu. Perubahan berlaku setelah Simpan.">
+            <ImagePicker
+              target={{ kind: "logo" }}
+              value={draft.logo ?? undefined}
+              name={draft.name}
+              // Logo unggahan menggantikan URL lama sepenuhnya.
+              onChange={(key) => setDraft((d) => ({ ...d, logo: key, logoUrl: undefined }))}
+            />
+          </Field>
+        )}
       </div>
 
       <div className="card card-pad space-y-4">
@@ -242,7 +249,7 @@ function ShopSection() {
           const clean = (l: string[]) => l.map((x) => x.trimEnd()).filter(Boolean);
           saveShopConfig(
             { ...draft, name: draft.name.trim(), receipt: { ...draft.receipt, header: clean(draft.receipt.header), footer: clean(draft.receipt.footer) } },
-            user?.email ?? "",
+            actor,
           );
           toast.success("Pengaturan toko disimpan");
         }}
@@ -259,7 +266,7 @@ function ShopSection() {
 
 function FeaturesSection() {
   const { features, branches } = useShop();
-  const { user } = useAuth();
+  const { actor } = useAuth();
   return (
     <div className="space-y-6">
       {FEATURE_GROUPS.map(({ group, title, intro }) => {
@@ -278,7 +285,7 @@ function FeaturesSection() {
                   label={FEATURE_INFO[name].label}
                   detail={FEATURE_INFO[name].detail}
                   checked={features[name]}
-                  onChange={(value) => saveFeatures({ ...features, [name]: value }, user?.email ?? "")}
+                  onChange={(value) => saveFeatures({ ...features, [name]: value }, actor)}
                 />
               ))}
             </div>
@@ -487,7 +494,7 @@ function StockItemEditor({ initial, isNew, onClose }: { initial: StockItem; isNe
 
 function UnitsSection() {
   const { config, products, stockItems } = useShop();
-  const { user } = useAuth();
+  const { actor } = useAuth();
   const [editing, setEditing] = useState<{ unit: Unit; isNew: boolean } | null>(null);
   const inUse = (code: string) => products.some((p) => p.unit === code) || stockItems.some((s) => s.unit === code);
   return (
@@ -521,7 +528,7 @@ function UnitsSection() {
           onSave={(unit) =>
             saveShopConfig(
               { ...config, units: editing.isNew ? [...config.units, unit] : config.units.map((u) => (u.code === unit.code ? unit : u)) },
-              user?.email ?? "",
+              actor,
             )
           }
           onClose={() => setEditing(null)}
@@ -643,7 +650,7 @@ function BranchesSection() {
 
 function BranchEditor({ initial, isNew, onClose }: { initial: Branch; isNew: boolean; onClose: () => void }) {
   const { branches } = useShop();
-  const { user } = useAuth();
+  const { actor } = useAuth();
   const [open, setOpen] = useState(true);
   const [draft, setDraft] = useState(initial);
   const codeTaken = isNew && branches.some((b) => b.code === draft.code);
@@ -667,7 +674,7 @@ function BranchEditor({ initial, isNew, onClose }: { initial: Branch; isNew: boo
               id = slugId(draft.name);
               if (branches.some((b) => b.id === id)) id = draft.code.toLowerCase();
             }
-            saveBranch({ ...draft, id, name: draft.name.trim() }, isNew, user?.email ?? "");
+            saveBranch({ ...draft, id, name: draft.name.trim() }, isNew, actor);
             close();
           }}
         />

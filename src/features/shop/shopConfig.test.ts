@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { accessProblem, parseClaims, usernameToEmail, emailToUsername } from "../auth/claims";
-import { effectiveSetup, parseDeviceSetup, suggestDeviceLetter } from "../device/deviceSetup";
+import { accessProblem, DEMO_CLAIMS, demoActor, parseClaims, usernameToEmail, emailToUsername } from "../auth/claims";
+import { demoDeviceSetup, effectiveSetup, parseDeviceSetup, suggestDeviceLetter } from "../device/deviceSetup";
 import { DEFAULT_FEATURES, parseFeatures } from "../settings/featureFlags";
 import { brandForeground, brandRamp, contrastRatio, parseShopConfig, TEXT_CONTRAST } from "./shopConfig";
 
@@ -83,6 +83,11 @@ describe("claims", () => {
     expect(usernameToEmail("a@b.c", "demo.local")).toBe("a@b.c");
     expect(emailToUsername("kasir@demo.local", "demo.local")).toBe("kasir");
   });
+  it("mode demo: pemilik tanpa cabang terkunci, cap audit dari uid", () => {
+    expect(accessProblem(DEMO_CLAIMS)).toBeNull();
+    expect(DEMO_CLAIMS.role).toBe("owner");
+    expect(demoActor("AbC123xyz", "kasir-demo.local")).toBe("tamu-abc123@kasir-demo.local");
+  });
 });
 
 describe("device setup", () => {
@@ -98,6 +103,16 @@ describe("device setup", () => {
     expect(effectiveSetup(stored, "staff", "pkm", ["tkl", "pkm"])).toEqual(stored);
     expect(effectiveSetup(stored, "owner", null, ["tkl", "pkm"])).toEqual(stored);
     expect(effectiveSetup(stored, "owner", null, ["tkl"])).toBeNull(); // cabang diarsip
+  });
+  it("mode demo: setup otomatis", () => {
+    expect(demoDeviceSetup(null, ["c1", "c2"], 0)).toEqual({ branchId: "c1", deviceLetter: "A" });
+    expect(demoDeviceSetup(null, ["c1", "c2"], 0.999)).toEqual({ branchId: "c1", deviceLetter: "Z" });
+    expect(demoDeviceSetup(null, ["c1"], 1)).toEqual({ branchId: "c1", deviceLetter: "Z" });
+    // Setup yang masih berlaku tidak diganti (pindah cabang dari bilah demo).
+    expect(demoDeviceSetup({ branchId: "c2", deviceLetter: "K" }, ["c1", "c2"], 0)).toEqual({ branchId: "c2", deviceLetter: "K" });
+    // Cabang diarsip: pindah ke cabang aktif pertama, huruf tetap.
+    expect(demoDeviceSetup({ branchId: "c9", deviceLetter: "K" }, ["c1"], 0)).toEqual({ branchId: "c1", deviceLetter: "K" });
+    expect(demoDeviceSetup(null, [], 0.5)).toBeNull();
   });
   it("saran huruf", () => {
     expect(suggestDeviceLetter(["A", "B"])).toBe("C");

@@ -1,4 +1,5 @@
 import { CLIENT } from "../../client";
+import { IS_DEMO } from "../demo/demo";
 import { imageUrl } from "./imageKeys";
 import { describeUploadFailure, isRetryable, MAX_ATTEMPTS, retryDelayMs, TIMEOUT_MS, type UploadFailure } from "./uploadPolicy";
 
@@ -14,8 +15,12 @@ export class UploadError extends Error {
   }
 }
 
-/** Unggah foto aktif untuk klien ini (`workerUrl` terisi di client.json). */
-export const uploadsEnabled = (): boolean => Boolean(CLIENT.workerUrl);
+/**
+ * Unggah foto aktif untuk klien ini (`workerUrl` terisi di client.json).
+ * Mode demo: mati, karena Worker memverifikasi token admin dan tamu anonim
+ * tidak punya. Foto yang sudah ada (key R2) tetap tampil.
+ */
+export const uploadsEnabled = (): boolean => Boolean(CLIENT.workerUrl) && !IS_DEMO;
 
 /** URL tampil untuk key yang tersimpan, atau null. */
 export const mediaUrl = (key: string | undefined): string | null =>

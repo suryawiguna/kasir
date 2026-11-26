@@ -1,0 +1,49 @@
+// ===============================================================
+// kasir-base: Firestore rules untuk project demo (kasir-demo)
+// ===============================================================
+//
+// Hanya untuk klien dengan "demo": true di client.json. Klien asli memakai
+// firestore.rules, yang tidak tahu apa-apa tentang file ini.
+//
+// Setiap calon klien punya demo sendiri di demos/{demoId}/..., dibuat oleh
+// `npm run seed-demo` (Admin SDK, melewati rules). Pengunjung masuk anonim
+// dan diperlakukan sebagai pemilik oleh aplikasi.
+//
+// - demos/{demoId}: hanya dibaca satu per satu (get). Ada-tidaknya dokumen ini
+//   menentukan apakah demo boleh dipakai, jadi slug acak tidak bisa membuat
+//   data baru. Daftar semua demo (list) ditolak: nama calon klien tidak
+//   boleh terlihat oleh pengunjung demo lain.
+// - Di bawahnya: bebas dibaca dan ditulis selama demonya ada. Validasi field
+//   per koleksi sengaja tidak diulang: ini data contoh yang di-reset dengan
+//   `seed-demo --force`. Kalau ada penyalahgunaan, salin aturan dari
+//   firestore.rules dengan awalan demos/{demoId}.
+// - Batas jumlah field per dokumen menahan dokumen sampah yang besar.
+// - Selain itu (termasuk koleksi top-level lama): ditolak.
+//
+// Deploy: npm run deploy -- --client kasir-demo --rules (lihat docs/RUNBOOK.md).
+// Setiap aturan baru wajib punya kasus di tests/rules/demo.rules.test.ts.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function demoExists(demoId) {
+      return exists(/databases/$(database)/documents/demos/$(demoId));
+    }
+
+    match /demos/{demoId} {
+      allow get: if request.auth != null;
+      allow list, write: if false;
+
+      // {collection}/ wajib: `{document=**}` saja juga cocok dengan nol
+      // segmen, yaitu dokumen demos/{demoId} itu sendiri (ditemukan oleh tes).
+      match /{collection}/{document=**} {
+        allow read: if request.auth != null && demoExists(demoId);
+        allow create, update: if request.auth != null && demoExists(demoId) &&
+          request.resource.data.size() <= 40;
+        allow delete: if request.auth != null && demoExists(demoId);
+      }
+    }
+  }
+}

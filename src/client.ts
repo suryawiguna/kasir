@@ -7,6 +7,3 @@ declare const __CLIENT__: ClientConfig;
  * build oleh vite.config.ts. Modul murni yang dites tidak boleh mengimpor ini.
  */
 export const CLIENT: ClientConfig = __CLIENT__;
-
-/** Awalan semua kunci localStorage, supaya dua klien di satu browser tidak tercampur. */
-export const storageKey = (key: string) => `${CLIENT.slug}:${key}`;
