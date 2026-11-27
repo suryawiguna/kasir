@@ -1,0 +1,304 @@
+{
+  "_comment": "Produk demo general /d/fnb: semua produk template dimsum + kategori Minuman (stok minuman tidak dilacak). Pakai: --template dimsum --products clients/kasir-demo/products/fnb.json. Sengaja di luar templates/: setiap file di sana dianggap template.",
+  "categories": [
+    {
+      "id": "kukus",
+      "name": "Dimsum kukus",
+      "order": 0,
+      "active": true
+    },
+    {
+      "id": "goreng",
+      "name": "Goreng",
+      "order": 1,
+      "active": true
+    },
+    {
+      "id": "paket",
+      "name": "Paket",
+      "order": 2,
+      "active": true
+    },
+    {
+      "id": "minuman",
+      "name": "Minuman",
+      "order": 3,
+      "active": true
+    },
+    {
+      "id": "tambahan",
+      "name": "Tambahan",
+      "order": 4,
+      "active": true
+    }
+  ],
+  "products": [
+    {
+      "id": "siomay",
+      "name": "Siomay Ayam",
+      "categoryId": "kukus",
+      "price": 20000,
+      "unit": "porsi",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 0,
+      "consumes": [
+        {
+          "stockItemId": "dimsum",
+          "qty": 4
+        }
+      ]
+    },
+    {
+      "id": "hakau",
+      "name": "Hakau Udang",
+      "categoryId": "kukus",
+      "price": 25000,
+      "unit": "porsi",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 1,
+      "consumes": [
+        {
+          "stockItemId": "dimsum",
+          "qty": 4
+        }
+      ]
+    },
+    {
+      "id": "mentai4",
+      "name": "Dimsum Mentai isi 4",
+      "categoryId": "kukus",
+      "price": 28000,
+      "unit": "porsi",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 2,
+      "consumes": [
+        {
+          "stockItemId": "dimsum",
+          "qty": 4
+        }
+      ]
+    },
+    {
+      "id": "mentai8",
+      "name": "Dimsum Mentai isi 8",
+      "categoryId": "kukus",
+      "price": 52000,
+      "unit": "porsi",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 3,
+      "consumes": [
+        {
+          "stockItemId": "dimsum",
+          "qty": 8
+        }
+      ]
+    },
+    {
+      "id": "lumpia",
+      "name": "Lumpia Kulit Tahu",
+      "categoryId": "goreng",
+      "price": 18000,
+      "unit": "porsi",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 10,
+      "consumes": [
+        {
+          "stockItemId": "kulit-lumpia",
+          "qty": 3
+        }
+      ]
+    },
+    {
+      "id": "wonton",
+      "name": "Wonton Goreng",
+      "categoryId": "goreng",
+      "price": 15000,
+      "unit": "porsi",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 11,
+      "consumes": [
+        {
+          "stockItemId": "kulit-lumpia",
+          "qty": 5
+        }
+      ]
+    },
+    {
+      "id": "paket-hemat",
+      "name": "Paket Hemat isi 3",
+      "categoryId": "paket",
+      "price": 55000,
+      "unit": "paket",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 20,
+      "choiceGroups": [
+        {
+          "id": "isi",
+          "label": "Pilih 3 menu",
+          "min": 3,
+          "max": 3,
+          "allowRepeat": true,
+          "options": [
+            {
+              "id": "siomay",
+              "label": "Siomay Ayam",
+              "consumes": [
+                {
+                  "stockItemId": "dimsum",
+                  "qty": 4
+                }
+              ]
+            },
+            {
+              "id": "hakau",
+              "label": "Hakau Udang",
+              "priceDelta": 2000,
+              "consumes": [
+                {
+                  "stockItemId": "dimsum",
+                  "qty": 4
+                }
+              ]
+            },
+            {
+              "id": "lumpia",
+              "label": "Lumpia Kulit Tahu",
+              "consumes": [
+                {
+                  "stockItemId": "kulit-lumpia",
+                  "qty": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chili-oil",
+      "name": "Chili Oil",
+      "categoryId": "tambahan",
+      "price": 25000,
+      "unit": "botol",
+      "soldBy": "count",
+      "stockMode": "shared",
+      "active": true,
+      "order": 30,
+      "consumes": [
+        {
+          "stockItemId": "chili-oil",
+          "qty": 1
+        }
+      ]
+    },
+    {
+      "id": "es-kopi-susu",
+      "name": "Es Kopi Susu",
+      "categoryId": "minuman",
+      "price": 18000,
+      "unit": "pcs",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 25,
+      "choiceGroups": [
+        {
+          "id": "ukuran",
+          "label": "Ukuran",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "regular",
+              "label": "Regular"
+            },
+            {
+              "id": "large",
+              "label": "Large",
+              "priceDelta": 5000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "americano",
+      "name": "Americano",
+      "categoryId": "minuman",
+      "price": 15000,
+      "unit": "pcs",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 26
+    },
+    {
+      "id": "matcha-latte",
+      "name": "Matcha Latte",
+      "categoryId": "minuman",
+      "price": 22000,
+      "unit": "pcs",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 27,
+      "choiceGroups": [
+        {
+          "id": "ukuran",
+          "label": "Ukuran",
+          "min": 1,
+          "max": 1,
+          "allowRepeat": false,
+          "options": [
+            {
+              "id": "regular",
+              "label": "Regular"
+            },
+            {
+              "id": "large",
+              "label": "Large",
+              "priceDelta": 5000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "es-teh",
+      "name": "Es Teh Manis",
+      "categoryId": "minuman",
+      "price": 6000,
+      "unit": "pcs",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 28
+    },
+    {
+      "id": "air",
+      "name": "Air Mineral",
+      "categoryId": "minuman",
+      "price": 5000,
+      "unit": "botol",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 29
+    }
+  ]
+}

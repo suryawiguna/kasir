@@ -10,6 +10,11 @@ import { consumesForMode, ownStockItemId } from "../stock/consumption";
 export interface DemoSeed {
   /** Jumlah pesanan contoh per hari per cabang [min, max]. Salon lebih sedikit dari warung. */
   sampleOrdersPerDay?: [number, number];
+  /**
+   * Jam buka untuk pesanan contoh (jam lokal, `close` eksklusif) dan jam ramai
+   * yang mendapat 3× pesanan. Tanpa ini: 09-20, tanpa jam ramai.
+   */
+  sampleHours?: { open: number; close: number; peaks?: number[] };
   config: Omit<ShopConfig, "updatedAt" | "updatedBy">;
   features: Record<string, boolean>;
   branches: Branch[];

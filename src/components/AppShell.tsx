@@ -1,4 +1,4 @@
-import { AlertCircle, Boxes, ClipboardList, LogOut, Settings, ShoppingCart, UserRound } from "lucide-react";
+import { AlertCircle, BarChart3, Boxes, ClipboardList, LogOut, Settings, ShoppingCart, UserRound } from "lucide-react";
 import { type ReactNode } from "react";
 import { CLIENT } from "../client";
 import { useAuth } from "../features/auth/AuthContext";
@@ -19,6 +19,7 @@ import { bottomNavBoxClass, bottomNavItemClass, bottomNavLabelClass, CountBadge,
 
 const NAV: { route: Route; label: string; icon: typeof ShoppingCart; ownerOnly?: boolean }[] = [
   { route: "/", label: "Kasir", icon: ShoppingCart },
+  { route: "/laporan", label: "Laporan", icon: BarChart3, ownerOnly: true },
   { route: "/pesanan", label: "Pesanan", icon: ClipboardList },
   { route: "/stok", label: "Stok", icon: Boxes },
   { route: "/pengaturan", label: "Pengaturan", icon: Settings, ownerOnly: true },

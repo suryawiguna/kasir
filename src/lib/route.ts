@@ -3,13 +3,13 @@ import { withBase } from "../features/demo/demoId";
 import { ROUTE_BASE } from "../features/demo/demo";
 
 /**
- * Empat tab, empat path. Path lain jatuh ke Kasir.
+ * Satu path per tab. Path lain jatuh ke Kasir.
  *
  * Mode demo: path diawali `/d/{demoId}` (ROUTE_BASE), yang dibuang sebelum
  * mencocokkan dan ditambahkan lagi saat pindah tab. Untuk klien biasa base
  * kosong, jadi perilakunya sama seperti tanpa mode demo.
  */
-export const ROUTES = ["/", "/pesanan", "/stok", "/pengaturan"] as const;
+export const ROUTES = ["/", "/laporan", "/pesanan", "/stok", "/pengaturan"] as const;
 export type Route = (typeof ROUTES)[number];
 
 const current = (): Route => {

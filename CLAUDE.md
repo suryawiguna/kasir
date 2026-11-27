@@ -27,7 +27,7 @@ npm run dev          # klien kasir-demo (project Firebase asli, mode demo). CLIE
 npm run dev:emulator # klien demo (project demo-kasir) → emulator, untuk uji yang tidak boleh menyentuh data online
 npm run emulators    # Firestore + Auth emulator (Java 21)
 npm run emulators:demo + npm run dev:demo-emulator   # mode demo kasir-demo di emulator (firestore.demo.rules)
-npm run seed-demo -- <demoId> --template <dimsum|ayam|cafe|salon> [--name ..] [--branches "A,B"] [--force] [--emulator]
+npm run seed-demo -- <demoId> --template <dimsum|ayam|cafe|salon> [--name ..] [--branches "A,B"] [--orders 30] [--force] [--emulator]
 npm run seed-demo -- --list | <demoId> --delete
 npm run seed -- --client demo     # isi emulator: Setup A Aneka Ayam + akun uji
 npm run lint         # tsc --noEmit + scripts/check-paths.mjs
@@ -70,7 +70,7 @@ Rencana: pesan pemilik repo 2026-11-26; cara pakai: [docs/RUNBOOK.md](docs/RUNBO
 
 ### Gerbang di [App.tsx](src/App.tsx)
 
-Auth → claims (`accessProblem`) → `ShopProvider` (config, fitur, cabang, kategori, item stok, produk) → `DeviceProvider` (cabang + huruf perangkat di localStorage) → `BranchProvider` (stok + 100 pesanan cabang) → tab di `src/pages/`. App.tsx tidak menyimpan state bisnis. Jangan biarkan tumbuh jadi god component seperti di Haoshii.
+Auth → claims (`accessProblem`) → `ShopProvider` (config, fitur, cabang, kategori, item stok, produk) → `DeviceProvider` (cabang + huruf perangkat di localStorage) → `BranchProvider` (stok + 100 pesanan cabang) → tab di `src/pages/` (Kasir, Laporan, Pesanan, Stok, Pengaturan; Laporan dan Pengaturan hanya pemilik). App.tsx tidak menyimpan state bisnis. Jangan biarkan tumbuh jadi god component seperti di Haoshii.
 
 ### Model data ([src/domain/types.ts](src/domain/types.ts))
 
@@ -96,8 +96,16 @@ Auth → claims (`accessProblem`) → `ShopProvider` (config, fitur, cabang, kat
 | [lib/businessDate.ts](src/lib/businessDate.ts) | hari bisnis per zona (Manado = WITA) |
 | shop/claims/device/featureFlags | parsing dokumen dan claims dengan default aman |
 | demo/demoId, demoTemplate, sampleOrders | URL/path demo, template prospek, pesanan contoh yang sama bentuknya dengan kasir |
+| [reports/*](src/features/reports/) + [export/csv.ts](src/features/export/csv.ts) | angka Laporan dan Ekspor: rentang + pembanding, ringkasan, per cabang, tren, terlaris, metode bayar, stok menipis |
 
 Menambah aturan di salah satunya = menambah tes. Tes yang merender komponen tidak dibuat (butuh Firebase di-mock).
+
+### Laporan ([ReportsPage](src/pages/ReportsPage.tsx), hanya pemilik)
+
+- **Terjual = lunas dan tidak batal. Tanggal penjualan = `paidAt` bila ada, kalau tidak `createdAt`** ([branchScope.ts](src/features/reports/branchScope.ts)). Pesanan langsung tidak punya `paidAt`; "bayar nanti" masuk di hari uangnya diterima. Belum dibayar = `unpaid` tidak batal, menurut `createdAt`. (Ini menggantikan keputusan DATA-PLAN §15.2 "penjualan di hari pesanan dibuat" untuk Laporan.)
+- Pembanding = periode sebelumnya dengan panjang sama sampai jam yang sama ([period.ts](src/features/reports/period.ts)). Pembanding kosong = tanpa persen.
+- Data: [useReportOrders](src/features/reports/useReportOrders.ts), hidup hanya selama tab terbuka. Hari ini lewat listener, hari sebelumnya `getDocs` berhalaman sekali, jendela diperlebar ke belakang bila perlu. Semua cabang dimuat, cabang difilter di klien: ganti rentang/cabang = 0 baca. Query `createdAt` + `paidAt`, indeks satu field otomatis. Biaya di [docs/QUOTA.md](docs/QUOTA.md).
+- Grafik = [BarChart](src/components/BarChart.tsx) tanpa library.
 
 ### Keputusan dari Haoshii yang dipertahankan
 
@@ -140,5 +148,6 @@ Allowlist field, deny-by-default, cap audit = email token, `updatedAt` wajib ber
 - Fase 0–3: selesai (fondasi, config/branding/auth/cabang, produk/satuan/stok, kasir + checkout offline).
 - Fase 4: sebagian. Ada daftar pesanan, detail, ubah status, terima pembayaran, batal (stok kembali dari snapshot), tandai belum bayar. **Belum:** Ubah Item, struk thermal/browser.
 - Fase 6: foto produk dan logo lewat Worker R2 sudah ada di kode dan teruji lokal; belum di-deploy ke kasir-demo (IMAGES-PLAN G4).
-- Mode demo per prospek: ada di kode dan teruji di emulator. Anonymous Auth kasir-demo sudah aktif (2026-11-26); rules demo, seed `contoh`/`aneka-ayam`, dan deploy aplikasi belum.
-- Fase 5, 7, 8 dan sisa Fase 6: belum (analitik, ekspor CSV, pelanggan sebagai dokumen, event, hitung kas, deploy per tag rilis, backup matrix).
+- Mode demo per prospek: live di kasir-demo sejak 2026-11-26 (Anonymous Auth, firestore.demo.rules, demo `contoh` dan `aneka-ayam`).
+- Fase 5: Laporan (ringkasan + pembanding, per cabang, tren, terlaris, metode bayar, stok menipis) dan Ekspor CSV ada di kode, teruji di emulator; belum di-deploy. Belum: ringkasan harian di server (butuh Blaze), laba kotor, laporan per kasir, peran `manager`.
+- Fase 7, 8 dan sisa Fase 6: belum (pelanggan sebagai dokumen, event, hitung kas, deploy per tag rilis, backup matrix).

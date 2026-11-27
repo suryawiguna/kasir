@@ -10,14 +10,18 @@ import type { DemoSeed } from "./demoTemplate";
 
 /**
  * Pesanan contoh untuk demo: beberapa hari terakhir, setiap cabang, jam buka
- * wajar, campuran tunai/transfer, sebagian kecil batal. Dibuat lewat fungsi
+ * wajar, campuran tunai/transfer, sebagian kecil batal. Supaya Laporan terlihat
+ * hidup: akhir pekan lebih ramai, jam ramai dari template (`sampleHours`),
+ * cabang pertama lebih ramai dari berikutnya (2 cabang ≈ 60/40), dan 1-2 item
+ * stok menipis. Dibuat lewat fungsi
  * yang sama dengan kasir (cart → toOrderLines → buildOrder → nomor pesanan),
  * jadi bentuk dokumen dan snapshot `consumed` sama persis dengan pesanan asli.
  *
  * Stok: angka di template adalah **sisa stok sekarang**, sesudah pesanan
  * contoh (stok pagi = sisa + terjual hari ini, hari-hari sebelumnya diganti
  * stok masuk). Jadi stok demo tidak pernah minus atau habis: dengan kebijakan
- * "block", stok yang habis membuat prospek tidak bisa mencoba menjual.
+ * "block", stok yang habis membuat prospek tidak bisa mencoba menjual. Item
+ * yang dibuat menipis tetap di atas 0 (tepat di `lowAt`).
  */
 export interface SampleOrdersInput {
   seed: DemoSeed;
@@ -58,8 +62,12 @@ export const hashSeed = (text: string): number => {
 
 const CUSTOMERS = ["Bu Rina", "Pak Joni", "Kak Maya", "Om Frans", "Tante Lina", "Ci Mei", "Bu Sari", "Pak Hendra", "Kak Dewi", "Mas Andi"];
 
-const OPEN_MINUTE = 9 * 60;
-const CLOSE_MINUTE = 20 * 60;
+const DEFAULT_HOURS = { open: 9, close: 20, peaks: [] as number[] };
+/** Pesanan akhir pekan dibanding hari biasa. */
+export const WEEKEND_FACTOR = 1.4;
+/** Pesanan cabang ke-i dibanding cabang pertama: 1, 0,67, 0,5, ... (2 cabang ≈ 60/40). */
+export const branchFactor = (index: number): number => 1 / (1 + 0.5 * index);
+const PEAK_WEIGHT = 3;
 
 const pick = <T,>(random: () => number, list: readonly T[]): T => list[Math.min(list.length - 1, Math.floor(random() * list.length))];
 const between = (random: () => number, min: number, max: number) => min + Math.floor(random() * (max - min + 1));
@@ -127,15 +135,24 @@ export const generateSampleOrders = (input: SampleOrdersInput): SampleOrdersResu
 
   const today = getBusinessDate(timezone, now);
   const orders: Order[] = [];
+  const hours = { ...DEFAULT_HOURS, ...seed.sampleHours };
+  const hourWeights: [number, number][] = [];
+  for (let h = hours.open; h < hours.close; h++) hourWeights.push([h, hours.peaks?.includes(h) ? PEAK_WEIGHT : 1]);
+  const totalWeight = hourWeights.reduce((s, [, w]) => s + w, 0);
+  const pickMinute = (): number => {
+    let r = random() * totalWeight;
+    for (const [h, w] of hourWeights) if ((r -= w) < 0) return h * 60 + between(random, 0, 59);
+    return (hours.close - 1) * 60 + between(random, 0, 59);
+  };
 
-  for (const branch of seed.branches.filter((b) => b.active)) {
+  seed.branches.filter((b) => b.active).forEach((branch, branchIndex) => {
     const sellable = sellableProducts(products, {
       branchId: branch.id,
       hiddenCategoryIds,
       weightSales: features.weightSales,
       bundles: features.bundles,
     });
-    if (sellable.length === 0) continue;
+    if (sellable.length === 0) return;
     const catalog = { productsById, units, branchId: branch.id };
     const letter = "A";
     let sequence = 0;
@@ -143,9 +160,10 @@ export const generateSampleOrders = (input: SampleOrdersInput): SampleOrdersResu
     for (let back = input.days - 1; back >= 0; back--) {
       const date = getBusinessDate(timezone, new Date(now.getTime() - back * 86400000));
       const isToday = date === today;
-      const minutes = Array.from({ length: between(random, minPerDay, maxPerDay) }, () => between(random, OPEN_MINUTE, CLOSE_MINUTE - 1)).sort(
-        (a, b) => a - b,
-      );
+      const weekday = new Date(`${date}T00:00:00.000Z`).getUTCDay();
+      const factor = branchFactor(branchIndex) * (weekday === 0 || weekday === 6 ? WEEKEND_FACTOR : 1);
+      const count = Math.max(1, Math.round(between(random, minPerDay, maxPerDay) * factor));
+      const minutes = Array.from({ length: count }, pickMinute).sort((a, b) => a - b);
       const times = minutes.map((m) => atLocal(timezone, date, m, between(random, 0, 59))).filter((t) => t.getTime() < now.getTime());
 
       times.forEach((time, index) => {
@@ -221,8 +239,29 @@ export const generateSampleOrders = (input: SampleOrdersInput): SampleOrdersResu
         orders.push(order);
       });
     }
-  }
+  });
 
   const inventory = Object.fromEntries(seed.branches.map((b) => [b.id, { ...(seed.inventory[b.id] ?? {}) }]));
+  markLowStock(seed, inventory, random);
   return { orders, inventory };
+};
+
+/**
+ * 1-2 item stok yang terjual dibuat menipis (tepat di `lowAt`, masih bisa
+ * dijual), supaya Laporan → Stok menipis tidak kosong: satu di cabang
+ * terakhir, satu lagi di cabang pertama bila ada 2 cabang atau lebih.
+ */
+const markLowStock = (seed: DemoSeed, inventory: Record<string, Record<string, number>>, random: () => number) => {
+  const sold = new Set(
+    seed.products.flatMap((p) => [...(p.consumes ?? []), ...(p.choiceGroups ?? []).flatMap((g) => g.options.flatMap((o) => o.consumes ?? []))]).map((c) => c.stockItemId),
+  );
+  const pool = seed.stockItems.filter((s) => s.active && sold.has(s.id) && (s.lowAt ?? 0) > 0);
+  const branches = seed.branches.filter((b) => b.active);
+  if (pool.length === 0 || branches.length === 0) return;
+  const targets = [branches[branches.length - 1], ...(branches.length > 1 ? [branches[0]] : [])];
+  for (const branch of targets) {
+    const item = pool.splice(Math.floor(random() * pool.length), 1)[0];
+    if (!item) return;
+    (inventory[branch.id] ??= {})[item.id] = item.lowAt!;
+  }
 };

@@ -1,11 +1,21 @@
 {
-  "_comment": "Template demo salon kuku & bulu mata. Layanan tidak dilacak stoknya; hanya produk jual (cuticle oil).",
+  "_comment": "Template demo nail & lash studio (demo general /d/salon). Layanan tidak dilacak stoknya; hanya produk jual (cuticle oil, botol).",
   "sampleOrdersPerDay": [
     4,
     10
   ],
+  "sampleHours": {
+    "open": 10,
+    "close": 20,
+    "peaks": [
+      13,
+      16,
+      17,
+      18
+    ]
+  },
   "config": {
-    "name": "Salon Contoh",
+    "name": "Nail Studio Contoh",
     "brandColor": "#be185d",
     "units": [
       {
@@ -32,7 +42,7 @@
     ],
     "receipt": {
       "header": [
-        "Salon Contoh",
+        "Nail Studio Contoh",
         "Nail & lash studio"
       ],
       "footer": [
@@ -75,20 +85,20 @@
   ],
   "categories": [
     {
-      "id": "kuku",
-      "name": "Kuku",
+      "id": "nail",
+      "name": "Nail",
       "order": 0,
       "active": true
     },
     {
-      "id": "bulu-mata",
-      "name": "Bulu mata",
+      "id": "eyelash",
+      "name": "Eyelash",
       "order": 1,
       "active": true
     },
     {
-      "id": "perawatan",
-      "name": "Perawatan",
+      "id": "treatment",
+      "name": "Treatment",
       "order": 2,
       "active": true
     },
@@ -111,92 +121,68 @@
   ],
   "products": [
     {
-      "id": "gel",
-      "name": "Gel Polish",
-      "categoryId": "kuku",
+      "id": "gel-tangan",
+      "name": "Gel polish tangan",
+      "categoryId": "nail",
       "price": 120000,
       "unit": "layanan",
       "soldBy": "count",
       "stockMode": "none",
       "active": true,
-      "order": 0,
-      "choiceGroups": [
-        {
-          "id": "bagian",
-          "label": "Bagian",
-          "min": 1,
-          "max": 1,
-          "allowRepeat": false,
-          "options": [
-            {
-              "id": "tangan",
-              "label": "Tangan"
-            },
-            {
-              "id": "kaki",
-              "label": "Kaki"
-            },
-            {
-              "id": "keduanya",
-              "label": "Tangan dan kaki",
-              "priceDelta": 100000
-            }
-          ]
-        }
-      ]
+      "order": 0
+    },
+    {
+      "id": "gel-kaki",
+      "name": "Gel polish kaki",
+      "categoryId": "nail",
+      "price": 100000,
+      "unit": "layanan",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 1
     },
     {
       "id": "nail-art",
-      "name": "Nail Art",
-      "categoryId": "kuku",
-      "price": 150000,
+      "name": "Nail art (per jari)",
+      "categoryId": "nail",
+      "price": 15000,
       "unit": "layanan",
       "soldBy": "count",
       "stockMode": "none",
       "active": true,
-      "order": 1,
+      "order": 2,
       "choiceGroups": [
         {
-          "id": "desain",
-          "label": "Desain",
+          "id": "jari",
+          "label": "Jumlah jari",
           "min": 1,
           "max": 1,
           "allowRepeat": false,
           "options": [
             {
-              "id": "simple",
-              "label": "Simple"
+              "id": "1",
+              "label": "1 jari"
             },
             {
-              "id": "medium",
-              "label": "Medium",
-              "priceDelta": 50000
+              "id": "5",
+              "label": "5 jari",
+              "priceDelta": 60000
             },
             {
-              "id": "full",
-              "label": "Full art",
-              "priceDelta": 100000
+              "id": "10",
+              "label": "10 jari",
+              "priceDelta": 135000
             }
           ]
         }
       ]
     },
     {
-      "id": "manicure",
-      "name": "Manicure",
-      "categoryId": "kuku",
-      "price": 80000,
-      "unit": "layanan",
-      "soldBy": "count",
-      "stockMode": "none",
-      "active": true,
-      "order": 2
-    },
-    {
-      "id": "pedicure",
-      "name": "Pedicure",
-      "categoryId": "kuku",
-      "price": 90000,
+      "id": "nail-extension",
+      "name": "Nail extension",
+      "categoryId": "nail",
+      "price": 250000,
       "unit": "layanan",
       "soldBy": "count",
       "stockMode": "none",
@@ -204,41 +190,32 @@
       "order": 3
     },
     {
-      "id": "eyelash",
-      "name": "Eyelash Extension",
-      "categoryId": "bulu-mata",
-      "price": 250000,
+      "id": "remove-gel",
+      "name": "Remove gel",
+      "categoryId": "nail",
+      "price": 35000,
       "unit": "layanan",
       "soldBy": "count",
       "stockMode": "none",
       "active": true,
-      "order": 10,
-      "choiceGroups": [
-        {
-          "id": "gaya",
-          "label": "Gaya",
-          "min": 1,
-          "max": 1,
-          "allowRepeat": false,
-          "options": [
-            {
-              "id": "natural",
-              "label": "Natural"
-            },
-            {
-              "id": "volume",
-              "label": "Volume",
-              "priceDelta": 50000
-            }
-          ]
-        }
-      ]
+      "order": 4
     },
     {
-      "id": "lash-lift",
-      "name": "Lash Lift",
-      "categoryId": "bulu-mata",
-      "price": 180000,
+      "id": "eyelash-natural",
+      "name": "Eyelash natural",
+      "categoryId": "eyelash",
+      "price": 200000,
+      "unit": "layanan",
+      "soldBy": "count",
+      "stockMode": "none",
+      "active": true,
+      "order": 10
+    },
+    {
+      "id": "eyelash-volume",
+      "name": "Eyelash volume",
+      "categoryId": "eyelash",
+      "price": 280000,
       "unit": "layanan",
       "soldBy": "count",
       "stockMode": "none",
@@ -246,10 +223,10 @@
       "order": 11
     },
     {
-      "id": "spa-tangan",
-      "name": "Spa Tangan",
-      "categoryId": "perawatan",
-      "price": 100000,
+      "id": "manicure",
+      "name": "Manicure",
+      "categoryId": "treatment",
+      "price": 75000,
       "unit": "layanan",
       "soldBy": "count",
       "stockMode": "none",
@@ -257,10 +234,10 @@
       "order": 20
     },
     {
-      "id": "hapus-gel",
-      "name": "Hapus Gel",
-      "categoryId": "perawatan",
-      "price": 35000,
+      "id": "pedicure",
+      "name": "Pedicure",
+      "categoryId": "treatment",
+      "price": 90000,
       "unit": "layanan",
       "soldBy": "count",
       "stockMode": "none",
@@ -269,7 +246,7 @@
     },
     {
       "id": "cuticle-oil",
-      "name": "Cuticle Oil",
+      "name": "Cuticle oil",
       "categoryId": "produk",
       "price": 45000,
       "unit": "botol",

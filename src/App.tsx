@@ -17,6 +17,7 @@ const PosPage = lazy(() => import("./pages/PosPage"));
 const OrdersPage = lazy(() => import("./pages/OrdersPage"));
 const StockPage = lazy(() => import("./pages/StockPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 
 /**
  * Router + provider saja. Tidak ada state bisnis di sini: setiap tab satu
@@ -115,7 +116,8 @@ function Tabs() {
   const { claims } = useAuth();
   const isOwner = claims?.role === "owner";
   const { features } = useShop();
-  const tab = (route === "/pengaturan" && !isOwner) || (route === "/stok" && !features.stockTracking) ? "/" : route;
+  const ownerOnly = route === "/pengaturan" || route === "/laporan";
+  const tab = (ownerOnly && !isOwner) || (route === "/stok" && !features.stockTracking) ? "/" : route;
   const { orders } = useBranch();
   // Pesanan yang masih perlu disiapkan atau diambil di cabang ini.
   const openOrders = orders.filter((o) => o.orderStatus === "pending" || o.orderStatus === "ready").length;
@@ -124,6 +126,7 @@ function Tabs() {
     <AppShell route={tab} navigate={navigate} badges={{ "/pesanan": openOrders }}>
       <Suspense fallback={<TabSkeleton />}>
         {tab === "/" && <PosPage />}
+        {tab === "/laporan" && isOwner && <ReportsPage />}
         {tab === "/pesanan" && <OrdersPage />}
         {tab === "/stok" && <StockPage />}
         {tab === "/pengaturan" && isOwner && <SettingsPage />}

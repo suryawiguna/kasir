@@ -4,6 +4,16 @@
     10,
     20
   ],
+  "sampleHours": {
+    "open": 10,
+    "close": 21,
+    "peaks": [
+      12,
+      17,
+      18,
+      19
+    ]
+  },
   "config": {
     "name": "Toko Contoh",
     "brandColor": "#b91c1c",

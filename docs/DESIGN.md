@@ -58,6 +58,7 @@ Diambil dari Haoshii Dimsum (`docs/DESIGN.md` di repo itu, yang berisi alasan le
 | Jumlah | `Stepper` (− menjadi tempat sampah di minimum) | |
 | Status | `StatusTimeline` Diproses → Siap → Selesai + satu tombol bernama langkah berikutnya | |
 | Kosong / memuat | `Empty`, `Skeleton` | |
+| Grafik | `BarChart` (batang, bertumpuk per seri, ketuk untuk nilai), warna seri `SERIES_COLORS` dari tangga brand | [BarChart.tsx](../src/components/BarChart.tsx) |
 | Toast | sonner, `top-center`, `richColors` (berhasil = brand, galat = merah), font aplikasi, 480px dari `lg` | [main.tsx](../src/main.tsx) |
 
 ## 6. Kasir

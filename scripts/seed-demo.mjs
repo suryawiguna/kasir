@@ -6,7 +6,7 @@
  *
  *   npm run seed-demo -- <demoId> --template <dimsum|ayam|cafe|salon>
  *       [--name "Nama Toko"] [--branches "Tikala,Perkamil"] [--color "#b45309"]
- *       [--products path/ke/produk.json] [--orders 7] [--contact "https://wa.me/62..."]
+ *       [--products path/ke/produk.json] [--orders 30] [--contact "https://wa.me/62..."]
  *       [--force]
  *   npm run seed-demo -- --list              # daftar demo yang ada
  *   npm run seed-demo -- <demoId> --delete   # hapus satu demo
@@ -116,7 +116,7 @@ if (typeof flags.products === "string") {
   if (!existsSync(path)) await stop(`File produk tidak ada: ${path}`);
   products = JSON.parse(readFileSync(path, "utf8"));
 }
-const days = flags.orders === undefined ? 7 : Number(flags.orders);
+const days = flags.orders === undefined ? 30 : Number(flags.orders);
 if (!Number.isInteger(days) || days < 0 || days > 60) await stop("--orders harus bilangan 0-60 (jumlah hari).");
 const contactUrl = typeof flags.contact === "string" ? flags.contact : "";
 if (contactUrl && !/^https:\/\//.test(contactUrl)) await stop("--contact harus diawali https:// (mis. https://wa.me/62...).");

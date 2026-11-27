@@ -73,13 +73,43 @@ npm run seed-demo -- aneka-ayam --template ayam --name "Aneka Ayam Manado" \
 - Template: `dimsum`, `ayam`, `cafe`, `salon` (`clients/kasir-demo/templates/`). Angka stok di template adalah sisa stok sekarang, jadi demo tidak pernah dibuka dengan stok habis.
 - `--branches`: nama dipisah koma, kode cabang opsional setelah titik dua (masuk ke nomor pesanan). Tanpa kode, diambil 3 huruf pertama nama.
 - Template `ayam` = menu yang dikirim Aneka Ayam Manado sendiri (kode AS001–AS005, Paket Hemat 3 ekor, Hati per pasang, Kaki per kg); warna oranye `#ca792a` dari menu mereka.
-- Opsi: `--color "#b45309"`, `--products produk.json` (daftar produk, atau objek berisi `products`/`categories`/`stockItems`/`inventory`), `--orders 7` (hari pesanan contoh, 0 = tanpa), `--contact "https://wa.me/62..."`.
+- Opsi: `--color "#b45309"`, `--products produk.json` (daftar produk, atau objek berisi `products`/`categories`/`stockItems`/`inventory`), `--orders 30` (hari pesanan contoh, bawaan 30 supaya Laporan 30 hari dan Bulan ini terisi; 0 = tanpa), `--contact "https://wa.me/62..."`.
+- Pola pesanan contoh untuk Laporan: akhir pekan ±1,4× hari biasa, jam ramai dari `sampleHours` template (dimsum/cafe sore-malam, ayam pagi, salon siang-sore), cabang pertama lebih ramai (2 cabang ≈ 60/40), dan 1-2 item stok tepat di batas menipis. Laporan 30 hari tidak menampilkan persen pembanding karena 30 hari sebelumnya kosong.
 - Id demo: huruf kecil, angka, `-`, 2-40 karakter. Link dengan huruf besar diarahkan ke bentuk kecil.
 - `npm run seed-demo -- --list`: daftar demo dan link-nya.
 - Reset ke kondisi awal (menghapus pesanan pengunjung juga): ulangi perintah seed dengan `--force`.
 - Hapus: `npm run seed-demo -- aneka-ayam --delete`.
 - Slug yang belum di-seed menampilkan "Demo ini belum tersedia" dan tidak bisa membuat data (rules memeriksa `demos/{demoId}` ada).
 - Unggah foto dan logo mati di demo (Worker butuh token pemilik sungguhan).
+
+### Demo general (satu link untuk banyak lead)
+
+Dipakai saat belum punya menu calon klien, atau untuk dikirim ke banyak lead sekaligus. Untuk lead yang sudah mengirim menunya, buat demo per prospek seperti di atas.
+
+| Link | Untuk | Isi |
+|---|---|---|
+| `kasir-demo.web.app/d/fnb` | dimsum, cafe, F&B umum | template `dimsum` + Minuman dari `clients/kasir-demo/products/fnb.json`, 2 cabang |
+| `kasir-demo.web.app/d/salon` | usaha jasa (nail art, salon) | template `salon`: layanan tanpa stok, cuticle oil dilacak per botol |
+
+Seed (atau seed ulang dengan `--force`, yang juga menghapus pesanan yang dibuat pengunjung):
+
+```bash
+npm run seed-demo -- fnb --template dimsum --name "Dimsum & Kopi Contoh" \
+  --branches "Cabang 1:CB1,Cabang 2:CB2" \
+  --products clients/kasir-demo/products/fnb.json \
+  --contact "https://wa.me/6282247973615"
+
+npm run seed-demo -- salon --template salon --name "Nail Studio Contoh" \
+  --contact "https://wa.me/6282247973615"
+```
+
+- File produk sengaja di `clients/kasir-demo/products/`, bukan `templates/`: setiap file di `templates/` dianggap template.
+- `fnb.json` hanya berisi `categories` dan `products`; item stok dan stok awal tetap dari template `dimsum`. Stok minuman tidak dilacak (satuan liter/gram tidak ada di template dimsum).
+- Seed ulang sebaiknya rutin (mis. setiap minggu), karena pengunjung bisa membuat atau membatalkan pesanan dan pesanan contoh berhenti di tanggal seed (Laporan "Hari ini" kosong bila demo tidak di-seed ulang).
+
+### Laporan
+
+Tab Laporan (pemilik saja, di demo selalu terlihat) membaca pesanan semua cabang selama tab terbuka. Tidak butuh rules atau indeks baru: query rentang `createdAt`/`paidAt` memakai indeks satu field otomatis. Biaya baca di [QUOTA.md](QUOTA.md).
 
 ### Uji lokal tanpa menyentuh data online
 

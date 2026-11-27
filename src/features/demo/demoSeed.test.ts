@@ -6,7 +6,7 @@ import { parseOrderNumber } from "../orders/orderNumber";
 import { cartProblem } from "../pos/cart";
 import { sumTotals } from "../pricing/pricing";
 import { applyOverrides, branchesFromNames, seedProblems, type DemoSeed } from "./demoTemplate";
-import { generateSampleOrders, hashSeed, mulberry32 } from "./sampleOrders";
+import { branchFactor, generateSampleOrders, hashSeed, mulberry32 } from "./sampleOrders";
 
 const TEMPLATE_DIR = join(__dirname, "../../../clients/kasir-demo/templates");
 const loadTemplate = (name: string): DemoSeed => JSON.parse(readFileSync(join(TEMPLATE_DIR, `${name}.json`), "utf8"));
@@ -77,6 +77,43 @@ describe("template", () => {
 
   it("dimsum, ayam, cafe, salon tersedia", () => {
     expect(TEMPLATES.sort()).toEqual(["ayam", "cafe", "dimsum", "salon"]);
+  });
+});
+
+describe("demo general", () => {
+  const fnbProducts = JSON.parse(readFileSync(join(TEMPLATE_DIR, "../products/fnb.json"), "utf8"));
+
+  it("fnb = dimsum + Minuman di 2 cabang, valid, pesanan contoh tidak membuat stok minus", () => {
+    const dimsum = loadTemplate("dimsum");
+    const seed = applyOverrides(dimsum, { name: "Dimsum & Kopi Contoh", branchNames: ["Cabang 1:CB1", "Cabang 2:CB2"], products: fnbProducts });
+    expect(seedProblems(seed)).toEqual([]);
+    expect(seed.branches.map((b) => [b.name, b.code])).toEqual([
+      ["Cabang 1", "CB1"],
+      ["Cabang 2", "CB2"],
+    ]);
+    const ids = new Set(seed.products.map((p) => p.id));
+    for (const p of dimsum.products) expect(ids.has(p.id)).toBe(true);
+    const drinks = seed.products.filter((p) => p.categoryId === "minuman");
+    expect(drinks.map((p) => [p.name, p.price, p.stockMode])).toEqual([
+      ["Es Kopi Susu", 18000, "none"],
+      ["Americano", 15000, "none"],
+      ["Matcha Latte", 22000, "none"],
+      ["Es Teh Manis", 6000, "none"],
+      ["Air Mineral", 5000, "none"],
+    ]);
+    const large = (id: string) => seed.products.find((p) => p.id === id)!.choiceGroups![0].options.find((o) => o.id === "large")!.priceDelta;
+    expect([large("es-kopi-susu"), large("matcha-latte")]).toEqual([5000, 5000]);
+    const { inventory } = generate(seed, "fnb");
+    for (const levels of Object.values(inventory)) for (const v of Object.values(levels)) expect(v).toBeGreaterThanOrEqual(0);
+  });
+
+  it("salon: layanan tanpa stok, hanya cuticle oil dilacak per botol", () => {
+    const t = loadTemplate("salon");
+    const tracked = t.products.filter((p) => p.stockMode !== "none");
+    expect(tracked.map((p) => [p.id, p.unit, p.consumes])).toEqual([["cuticle-oil", "botol", [{ stockItemId: "cuticle-oil", qty: 1 }]]]);
+    expect(t.products.filter((p) => p.stockMode === "none").every((p) => p.unit === "layanan")).toBe(true);
+    expect(t.products.map((p) => p.price).every((x) => x % 500 === 0)).toBe(true);
+    expect([t.features.receipt, t.features.customers, t.features.transfer]).toEqual([true, true, true]);
   });
 });
 
@@ -167,16 +204,18 @@ describe("generateSampleOrders", () => {
     for (const levels of Object.values(inventory)) for (const v of Object.values(levels)) expect(v).toBeGreaterThanOrEqual(0);
   });
 
-  it("7 hari, jam buka, nomor urut per cabang tidak bentrok, tidak ada pesanan di masa depan", () => {
+  const hourOf = (iso: string) =>
+    Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Makassar", hour: "2-digit", hour12: false }).format(new Date(iso)));
+
+  it("7 hari, jam buka template, nomor urut per cabang tidak bentrok, tidak ada pesanan di masa depan", () => {
     const seed = loadTemplate("ayam");
     const { orders } = generate(seed);
     const dates = new Set(orders.map((o) => getBusinessDate("Asia/Makassar", o.createdAt)));
     expect(dates.size).toBe(7);
     expect(orders.every((o) => new Date(o.createdAt) < NOW)).toBe(true);
     for (const o of orders) {
-      const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Makassar", hour: "2-digit", hour12: false }).format(new Date(o.createdAt)));
-      expect(hour).toBeGreaterThanOrEqual(9);
-      expect(hour).toBeLessThan(20);
+      expect(hourOf(o.createdAt)).toBeGreaterThanOrEqual(seed.sampleHours!.open);
+      expect(hourOf(o.createdAt)).toBeLessThan(seed.sampleHours!.close);
     }
     const numbers = orders.map((o) => o.orderNumber);
     expect(new Set(numbers).size).toBe(numbers.length);
@@ -184,18 +223,45 @@ describe("generateSampleOrders", () => {
       const seqs = orders.filter((o) => o.branchId === branch.id).map((o) => parseOrderNumber(o.orderNumber)!);
       expect(seqs.every((p) => p.branchCode === branch.code)).toBe(true);
       expect(seqs.map((p) => p.sequence)).toEqual(seqs.map((_, i) => i + 1));
-      // 8-20 per hari per cabang (hari ini terpotong jam sekarang).
+      // Paling sedikit min per hari × faktor cabang (hari ini terpotong jam sekarang).
       const perDay = new Map<string, number>();
       for (const o of orders.filter((x) => x.branchId === branch.id)) {
         const d = getBusinessDate("Asia/Makassar", o.createdAt);
         perDay.set(d, (perDay.get(d) ?? 0) + 1);
       }
-      for (const [d, n] of perDay) if (d !== "2026-11-26") expect(n).toBeGreaterThanOrEqual(seed.sampleOrdersPerDay?.[0] ?? 8);
+      const min = Math.round(seed.sampleOrdersPerDay![0] * branchFactor(branch.order));
+      for (const [d, n] of perDay) if (d !== "2026-11-26") expect(n).toBeGreaterThanOrEqual(min);
     }
   });
 
+  it("30 hari: akhir pekan lebih ramai, cabang pertama ±60%, jam ramai template paling padat", () => {
+    const seed = loadTemplate("dimsum");
+    const { orders } = generate(seed, "laporan", 30);
+    const days = new Set(orders.map((o) => getBusinessDate("Asia/Makassar", o.createdAt)));
+    expect(days.size).toBe(30);
+    const perDay = new Map<string, number>();
+    for (const o of orders) {
+      const d = getBusinessDate("Asia/Makassar", o.createdAt);
+      if (d !== "2026-11-26") perDay.set(d, (perDay.get(d) ?? 0) + 1);
+    }
+    const avg = (weekend: boolean) => {
+      const xs = [...perDay].filter(([d]) => [0, 6].includes(new Date(`${d}T00:00:00Z`).getUTCDay()) === weekend).map(([, n]) => n);
+      return xs.reduce((s, n) => s + n, 0) / xs.length;
+    };
+    expect(avg(true)).toBeGreaterThan(avg(false) * 1.15);
+    const first = orders.filter((o) => o.branchId === seed.branches[0].id).length / orders.length;
+    expect(first).toBeGreaterThan(0.53);
+    expect(first).toBeLessThan(0.67);
+    const byHour = new Map<number, number>();
+    for (const o of orders) byHour.set(hourOf(o.createdAt), (byHour.get(hourOf(o.createdAt)) ?? 0) + 1);
+    const peaks = seed.sampleHours!.peaks!;
+    const quiet = [...byHour.keys()].filter((h) => !peaks.includes(h));
+    const mean = (hs: number[]) => hs.reduce((s, h) => s + (byHour.get(h) ?? 0), 0) / hs.length;
+    expect(mean(peaks)).toBeGreaterThan(mean(quiet) * 2);
+  });
+
   it("campuran tunai/transfer, sebagian batal, yang lalu selesai", () => {
-    const { orders } = generate(loadTemplate("dimsum"), "campur", 7);
+    const { orders } = generate(loadTemplate("dimsum"), "campur", 30);
     const methods = new Set(orders.map((o) => o.paymentMethod).filter(Boolean));
     expect(methods.has("cash") && methods.has("transfer")).toBe(true);
     expect(orders.some((o) => o.orderStatus === "cancelled" && o.cancelledAt && o.cancelledBy)).toBe(true);
@@ -204,10 +270,24 @@ describe("generateSampleOrders", () => {
     expect(past.every((o) => o.paymentStatus === "paid")).toBe(true);
   });
 
-  it("stok = sisa stok di template, tidak pernah habis", () => {
-    const seed = loadTemplate("ayam");
+  it.each(TEMPLATES)("%s: stok = sisa stok di template, 1-2 item menipis, tidak ada yang habis", (name) => {
+    const seed = loadTemplate(name);
     const { inventory } = generate(seed, "stok", 7);
-    for (const b of seed.branches) expect(inventory[b.id]).toEqual(seed.inventory[b.id]);
+    const lowered: string[] = [];
+    for (const b of seed.branches)
+      for (const [id, level] of Object.entries(inventory[b.id])) {
+        expect(level).toBeGreaterThan(0);
+        if (level !== seed.inventory[b.id][id]) {
+          expect(level).toBe(seed.stockItems.find((s) => s.id === id)!.lowAt);
+          lowered.push(`${b.id}/${id}`);
+        }
+      }
+    expect(lowered.length).toBeGreaterThanOrEqual(1);
+    expect(lowered.length).toBeLessThanOrEqual(2);
+  });
+
+  it("seedProblems menolak template yang stoknya sudah menipis", () => {
+    const seed = loadTemplate("ayam");
     expect(seedProblems({ ...seed, inventory: { ...seed.inventory, c2: { ...seed.inventory.c2, ayam: 0 } } })).toContain(
       "Stok ayam di cabang c2 kosong atau sudah menipis.",
     );

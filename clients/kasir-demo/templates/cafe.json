@@ -4,6 +4,17 @@
     12,
     22
   ],
+  "sampleHours": {
+    "open": 8,
+    "close": 22,
+    "peaks": [
+      8,
+      15,
+      16,
+      19,
+      20
+    ]
+  },
   "config": {
     "name": "Kopi Contoh",
     "brandColor": "#57534e",
